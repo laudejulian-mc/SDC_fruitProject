@@ -380,6 +380,118 @@ const en = {
     time: 'Time',
     method: 'Method',
   },
+
+  // ─── Image Quality (#3) ─────────────────────────────────
+  quality: {
+    analyzing: 'Analyzing image quality…',
+    score: 'Quality Score',
+    excellent: 'Excellent image quality!',
+    good: 'Good image quality.',
+    fair: 'Fair — may affect accuracy.',
+    poor: 'Poor quality — consider retaking.',
+    blurry: 'Image appears blurry',
+    tooDark: 'Image is too dark',
+    tooBright: 'Image is too bright',
+    lowContrast: 'Low contrast detected',
+    passedAll: 'All checks passed!',
+    blur: 'Sharpness',
+    brightness: 'Brightness',
+    contrast: 'Contrast',
+    enhanceNow: 'Auto-Enhance',
+    enhanced: 'Image enhanced!',
+    original: 'Original',
+    showEdges: 'Show Boundaries',
+    hideEdges: 'Hide Boundaries',
+  },
+
+  // ─── Spoilage Alert (#8) ────────────────────────────────
+  spoilage: {
+    alertTitle: '⚠️ Spoilage Detected!',
+    alertSubtitle: 'This fruit shows signs of decay.',
+    disposalTitle: 'Safe Disposal Tips',
+    tip1: 'Do not consume rotten fruit — it may contain harmful bacteria.',
+    tip2: 'Compost if possible, or dispose in sealed waste bag.',
+    tip3: 'Wash hands after handling rotten produce.',
+    tip4: 'Check nearby fruits for cross-contamination.',
+    tip5: 'Clean the storage area to prevent mold spread.',
+    dismiss: 'Got It',
+    dontShowAgain: "Don't show for this session",
+  },
+
+  // ─── Session Summary (#11) ──────────────────────────────
+  session: {
+    title: 'Session Summary',
+    totalScans: 'Total Scans',
+    freshCount: 'Fresh',
+    rottenCount: 'Rotten',
+    avgConfidence: 'Avg Confidence',
+    freshRate: 'Freshness Rate',
+    sessionEmpty: 'No scans yet',
+    viewSummary: 'View Summary',
+    reset: 'Reset Session',
+  },
+
+  // ─── Duplicate Detection (#12) ──────────────────────────
+  duplicate: {
+    detected: 'Duplicate Image Detected',
+    description: 'This image looks very similar to a recently scanned one.',
+    continueAnyway: 'Scan Anyway',
+    chooseAnother: 'Choose Another',
+  },
+
+  // ─── Lighting Guide (#13) ───────────────────────────────
+  lighting: {
+    title: 'Lighting Guide',
+    optimal: 'Optimal Lighting ☀️',
+    acceptable: 'Acceptable Lighting 🌤️',
+    poor: 'Poor Lighting 🌑',
+    tip: 'Move to a well-lit area for best results',
+    centerFruit: 'Center the fruit in frame',
+    holdSteady: 'Hold camera steady',
+  },
+
+  // ─── Auto Enhance (#16) ─────────────────────────────────
+  enhance: {
+    title: 'Auto-Enhance',
+    adjustBrightness: 'Brightness',
+    adjustContrast: 'Contrast',
+    sharpen: 'Sharpen',
+    apply: 'Apply Enhancement',
+    reset: 'Reset',
+    preview: 'Enhanced Preview',
+  },
+
+  // ─── Compare Mode (#19) ─────────────────────────────────
+  compare: {
+    title: 'Compare Results',
+    selectTwo: 'Select 2 records to compare',
+    selected: '{n} selected',
+    compareBtn: 'Compare',
+    vsLabel: 'VS',
+    noSelection: 'Select exactly 2 records from the table above.',
+    close: 'Close Comparison',
+    betterResult: 'Better Result',
+    metric: 'Metric',
+    result1: 'Result A',
+    result2: 'Result B',
+    maxTwo: 'Max 2 records. Remove one first.',
+    label: 'Label',
+    confidence: 'Confidence',
+    grade: 'Grade',
+    analysis: 'Quick Analysis',
+    sameLabel: 'Both classified as',
+    diffLabel: 'Different labels',
+    confGap: 'Confidence gap',
+    selectRecords: 'Select {n} more record(s) to compare',
+  },
+
+  // ─── Boundary Detection (#5) ────────────────────────────
+  boundary: {
+    title: 'Fruit Boundary Detection',
+    showOverlay: 'Show Edges',
+    hideOverlay: 'Hide Edges',
+    analyzing: 'Detecting boundaries…',
+  },
 };
 
 export default en;

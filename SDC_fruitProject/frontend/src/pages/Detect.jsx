@@ -2,9 +2,10 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { detectSingle, detectBatch } from '../api';
 import ResultCard from '../components/ResultCard';
 import Toast from '../components/Toast';
-import { Upload, ImagePlus, Loader2, Images, X, Sparkles, Info, CheckCircle2, Zap, ShieldCheck, Stethoscope, Clock, RotateCcw, Camera, Lightbulb, Heart, Flame, Pill, RefreshCw } from 'lucide-react';
+import { Upload, ImagePlus, Loader2, Images, X, Sparkles, Info, CheckCircle2, Zap, ShieldCheck, Stethoscope, Clock, RotateCcw, Camera, Lightbulb, Heart, Flame, Pill, RefreshCw, AlertTriangle, Wand2, Eye, EyeOff, Copy, BarChart3 } from 'lucide-react';
 import clsx from 'clsx';
 import { FRUIT_OPTIONS, fruitEmoji, FRUIT_FUN_FACTS, FRUIT_HEALTH_INFO, getRandomFact, getRandomFacts } from '../utils/fruitConstants';
+import { analyzeImageQuality, computeImageHash, hashSimilarity, enhanceImage, detectEdges } from '../utils/imageUtils';
 import { useI18n } from '../contexts/I18nContext';
 
 export default function Detect() {
@@ -25,6 +26,20 @@ export default function Detect() {
   const [factKey, setFactKey] = useState(0);
   const inputRef = useRef();
 
+  // ─── New feature state ───
+  const [imageQuality, setImageQuality] = useState(null);  // #3
+  const [qualityLoading, setQualityLoading] = useState(false);
+  const [edgeOverlay, setEdgeOverlay] = useState(null);    // #5
+  const [showEdges, setShowEdges] = useState(false);
+  const [spoilageAlert, setSpoilageAlert] = useState(false); // #8
+  const [spoilageMuted, setSpoilageMuted] = useState(false);
+  const [sessionResults, setSessionResults] = useState([]); // #11
+  const [recentHashes, setRecentHashes] = useState([]);     // #12
+  const [duplicateWarning, setDuplicateWarning] = useState(false);
+  const [enhancedPreview, setEnhancedPreview] = useState(null); // #16
+  const [enhancedFile, setEnhancedFile] = useState(null);
+  const [showEnhance, setShowEnhance] = useState(false);
+
   // Rotate fun facts every 8 seconds or when fruit changes
   useEffect(() => {
     setCurrentFact(getRandomFacts(fruitType, 3));
@@ -41,6 +56,65 @@ export default function Detect() {
     setFactKey((k) => k + 1);
   };
 
+  // ─── Analyze image on selection (#3, #5, #12, #16) ───
+  const analyzeSelectedImage = useCallback(async (file) => {
+    setQualityLoading(true);
+    setImageQuality(null);
+    setEdgeOverlay(null);
+    setEnhancedPreview(null);
+    setEnhancedFile(null);
+    setDuplicateWarning(false);
+    try {
+      // Quality analysis
+      const q = await analyzeImageQuality(file);
+      setImageQuality(q);
+
+      // Duplicate check
+      const hash = await computeImageHash(file);
+      const isDup = recentHashes.some((h) => hashSimilarity(h, hash) > 0.85);
+      if (isDup) setDuplicateWarning(true);
+      setRecentHashes((prev) => [hash, ...prev.slice(0, 19)]);
+
+      // Auto-enhance if quality is fair/poor
+      if (q.score < 60) {
+        const enhanced = await enhanceImage(file);
+        setEnhancedPreview(enhanced.dataUrl);
+        setEnhancedFile(new File([enhanced.blob], file.name || 'enhanced.jpg', { type: 'image/jpeg' }));
+      }
+    } catch (e) {
+      console.warn('Image analysis failed:', e);
+    } finally {
+      setQualityLoading(false);
+    }
+  }, [recentHashes]);
+
+  const toggleEdgeOverlay = async () => {
+    if (showEdges) { setShowEdges(false); return; }
+    if (edgeOverlay) { setShowEdges(true); return; }
+    if (!files[0]) return;
+    try {
+      const overlay = await detectEdges(files[0]);
+      setEdgeOverlay(overlay);
+      setShowEdges(true);
+    } catch (e) { console.warn('Edge detection failed:', e); }
+  };
+
+  const applyEnhancement = () => {
+    if (!enhancedFile || !enhancedPreview) return;
+    setFiles([enhancedFile]);
+    setPreviews([enhancedPreview]);
+    setShowEnhance(false);
+    setToast({ type: 'success', message: t('quality.enhanced') });
+  };
+
+  // Session summary derived stats (#11)
+  const sessionStats = {
+    total: sessionResults.length,
+    fresh: sessionResults.filter((r) => r.predicted_label === 'Fresh').length,
+    rotten: sessionResults.filter((r) => r.predicted_label === 'Rotten').length,
+    avgConf: sessionResults.length ? (sessionResults.reduce((s, r) => s + r.confidence, 0) / sessionResults.length * 100).toFixed(1) : '0.0',
+  };
+
   const handleFiles = useCallback((fileList) => {
     const arr = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
     if (!arr.length) {
@@ -50,21 +124,24 @@ export default function Detect() {
     if (mode === 'single') {
       setFiles([arr[0]]);
       setPreviews([URL.createObjectURL(arr[0])]);
+      analyzeSelectedImage(arr[0]); // #3, #5, #12, #16
     } else {
       setFiles(arr);
       setPreviews(arr.map((f) => URL.createObjectURL(f)));
     }
     setResult(null);
     setBatchResults([]);
-  }, [mode, t]);
+    setSpoilageAlert(false);
+  }, [mode, t, analyzeSelectedImage]);
 
   const onDrop = (e) => { e.preventDefault(); setDragActive(false); handleFiles(e.dataTransfer.files); };
 
-  const clear = () => { setFiles([]); setPreviews([]); setResult(null); setBatchResults([]); };
+  const clear = () => { setFiles([]); setPreviews([]); setResult(null); setBatchResults([]); setImageQuality(null); setEdgeOverlay(null); setShowEdges(false); setEnhancedPreview(null); setEnhancedFile(null); setShowEnhance(false); setDuplicateWarning(false); setSpoilageAlert(false); };
 
   const submit = async () => {
     if (!files.length) return;
     setLoading(true);
+    setSpoilageAlert(false);
     try {
       if (mode === 'single') {
         const fd = new FormData();
@@ -74,7 +151,10 @@ export default function Detect() {
         const res = await detectSingle(fd);
         setResult(res.data);
         setScanCount((c) => c + 1);
+        setSessionResults((prev) => [res.data, ...prev]); // #11
         setRecentScans((prev) => [{ ...res.data, time: new Date().toLocaleTimeString() }, ...prev.slice(0, 9)]);
+        // #8 Spoilage alert
+        if (res.data.predicted_label === 'Rotten' && !spoilageMuted) setSpoilageAlert(true);
         setToast({ type: 'success', message: t('detect.diagnosisComplete', { fruit: fruitName(fruitType) }) });
       } else {
         const fd = new FormData();
@@ -83,10 +163,14 @@ export default function Detect() {
         const res = await detectBatch(fd);
         setBatchResults(res.data);
         setScanCount((c) => c + res.data.length);
+        const validResults = res.data.filter((r) => !r.error);
+        setSessionResults((prev) => [...validResults, ...prev]); // #11
         setRecentScans((prev) => [
-          ...res.data.filter((r) => !r.error).map((r) => ({ ...r, time: new Date().toLocaleTimeString() })),
+          ...validResults.map((r) => ({ ...r, time: new Date().toLocaleTimeString() })),
           ...prev,
         ].slice(0, 10));
+        // #8 Spoilage alert if any rotten in batch
+        if (validResults.some((r) => r.predicted_label === 'Rotten') && !spoilageMuted) setSpoilageAlert(true);
         setToast({ type: 'success', message: t('detect.batchComplete', { n: res.data.length, fruit: fruitName(fruitType) }) });
       }
     } catch (err) {
@@ -179,7 +263,13 @@ export default function Detect() {
                   <X size={16} />
                 </button>
                 {mode === 'single' ? (
-                  <img src={previews[0]} alt="Preview" className="mx-auto max-h-72 rounded-xl object-contain cursor-zoom-in hover:scale-[1.02] transition-transform" onClick={(e) => { e.stopPropagation(); setZoomImage(previews[0]); }} />
+                  <div className="relative">
+                    <img src={previews[0]} alt="Preview" className="mx-auto max-h-72 rounded-xl object-contain cursor-zoom-in hover:scale-[1.02] transition-transform" onClick={(e) => { e.stopPropagation(); setZoomImage(previews[0]); }} />
+                    {/* #5 Edge overlay */}
+                    {showEdges && edgeOverlay && (
+                      <img src={edgeOverlay} alt="Edges" className="absolute inset-0 mx-auto max-h-72 rounded-xl object-contain pointer-events-none animate-fade-in opacity-80" />
+                    )}
+                  </div>
                 ) : (
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-2">
                     {previews.map((p, i) => (
@@ -190,6 +280,71 @@ export default function Detect() {
               </div>
             )}
           </div>
+
+          {/* #3 Image Quality Badge + #5 Edge Toggle + #16 Enhance Button */}
+          {mode === 'single' && files.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {qualityLoading && (
+                <span className="inline-flex items-center gap-1.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-500 px-3 py-1.5 rounded-lg">
+                  <Loader2 size={12} className="animate-spin" /> {t('quality.analyzing')}
+                </span>
+              )}
+              {imageQuality && !qualityLoading && (
+                <>
+                  <span className={clsx(
+                    'inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg',
+                    imageQuality.score >= 70 ? 'bg-green-50 dark:bg-green-900/20 text-green-600' :
+                    imageQuality.score >= 40 ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600' :
+                    'bg-red-50 dark:bg-red-900/20 text-red-600'
+                  )}>
+                    {imageQuality.score >= 70 ? <CheckCircle2 size={12} /> : imageQuality.score >= 40 ? <AlertTriangle size={12} /> : <AlertTriangle size={12} />}
+                    {t('quality.score')}: {imageQuality.score}/100
+                    {imageQuality.issues.length > 0 && (
+                      <span className="opacity-70">
+                        ({imageQuality.issues.map((i) => t(`quality.${i}`)).join(', ')})
+                      </span>
+                    )}
+                  </span>
+                  {/* #5 Edge toggle */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleEdgeOverlay(); }}
+                    className={clsx('btn-secondary text-xs !py-1.5', showEdges && '!bg-cyan-50 dark:!bg-cyan-900/20 !border-cyan-300 !text-cyan-600')}
+                  >
+                    {showEdges ? <EyeOff size={12} /> : <Eye size={12} />}
+                    {showEdges ? t('quality.hideEdges') : t('quality.showEdges')}
+                  </button>
+                  {/* #16 Enhance */}
+                  {enhancedPreview && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); applyEnhancement(); }}
+                      className="btn-secondary text-xs !py-1.5 !border-purple-300 dark:!border-purple-700 !text-purple-600 hover:!bg-purple-50 dark:hover:!bg-purple-900/20"
+                    >
+                      <Wand2 size={12} /> {t('quality.enhanceNow')}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* #12 Duplicate Warning */}
+          {duplicateWarning && (
+            <div className="mt-2 flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 animate-slide-up">
+              <Copy size={16} className="text-amber-500 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{t('duplicate.detected')}</p>
+                <p className="text-xs text-amber-600/70 dark:text-amber-400/60">{t('duplicate.description')}</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setDuplicateWarning(false)} className="text-xs px-3 py-1.5 rounded-lg bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors">
+                  {t('duplicate.continueAnyway')}
+                </button>
+                <button onClick={() => { clear(); inputRef.current?.click(); }} className="text-xs px-3 py-1.5 rounded-lg border border-amber-300 dark:border-amber-700 text-amber-600 font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/20 transition-colors">
+                  {t('duplicate.chooseAnother')}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Submit button */}
           <button onClick={submit} disabled={!files.length || loading} className="btn-primary w-full py-4 text-lg mt-3 group">
@@ -316,18 +471,45 @@ export default function Detect() {
           </div>
         </div>
 
-        {/* ── Session Counter (swapped with photo tips) ── */}
+        {/* ── Session Summary (#11) — swapped with plain counter ── */}
         <div className="col-span-6 sm:col-span-6 lg:col-span-4">
-          <div className="card bg-gradient-to-br from-primary-50 to-emerald-50 dark:from-primary-900/20 dark:to-emerald-900/20 !border-primary-100 dark:!border-primary-800/30 text-center h-full flex flex-col items-center justify-center">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-primary-100 dark:bg-primary-800/40 flex items-center justify-center mb-3 hover:rotate-12 transition-transform">
-              <Stethoscope size={28} className="text-primary-600 dark:text-primary-400" />
-            </div>
-            <p className="text-5xl font-extrabold text-primary-700 dark:text-primary-400 tabular-nums">{scanCount}</p>
-            <p className="text-sm text-primary-600/70 dark:text-primary-400/70 mt-1.5 font-medium">{t('detect.examsThisSession')}</p>
-            <div className="mt-3 flex items-center justify-center gap-2">
-              <span className="text-2xl animate-bounce-in">{fruitEmoji(fruitType)}</span>
-              <span className="text-xs text-primary-500 font-bold uppercase tracking-wider">{displayFruit} {t('detect.mode')}</span>
-            </div>
+          <div className="card bg-gradient-to-br from-primary-50 to-emerald-50 dark:from-primary-900/20 dark:to-emerald-900/20 !border-primary-100 dark:!border-primary-800/30 h-full">
+            <h3 className="text-base font-bold flex items-center gap-2 mb-3">
+              <BarChart3 size={16} className="text-primary-500" /> {t('session.title')}
+            </h3>
+            {sessionStats.total === 0 ? (
+              <div className="text-center py-4">
+                <Stethoscope size={28} className="text-primary-300 mx-auto mb-2" />
+                <p className="text-5xl font-extrabold text-primary-700 dark:text-primary-400 tabular-nums">{scanCount}</p>
+                <p className="text-sm text-primary-600/70 dark:text-primary-400/70 mt-1">{t('detect.examsThisSession')}</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2.5 rounded-lg bg-white/60 dark:bg-gray-800/40 text-center">
+                    <p className="text-2xl font-extrabold text-primary-700 dark:text-primary-400 tabular-nums">{sessionStats.total}</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">{t('session.totalScans')}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-white/60 dark:bg-gray-800/40 text-center">
+                    <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400 tabular-nums">{sessionStats.avgConf}%</p>
+                    <p className="text-[10px] text-gray-400 uppercase tracking-wider font-medium">{t('session.avgConfidence')}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-3 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                    <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${sessionStats.total ? (sessionStats.fresh / sessionStats.total * 100) : 0}%` }} />
+                  </div>
+                  <span className="text-xs font-bold text-green-600">{sessionStats.fresh} ✅</span>
+                  <span className="text-xs font-bold text-red-600">{sessionStats.rotten} ❌</span>
+                </div>
+                <p className="text-xs text-center text-primary-500 font-medium">
+                  {t('session.freshRate')}: {sessionStats.total ? Math.round(sessionStats.fresh / sessionStats.total * 100) : 0}%
+                </p>
+                <button onClick={() => { setSessionResults([]); setScanCount(0); setRecentScans([]); }} className="text-xs text-gray-400 hover:text-red-500 flex items-center justify-center gap-1 w-full mt-1 transition-colors">
+                  <RotateCcw size={11} /> {t('session.reset')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -398,6 +580,41 @@ export default function Detect() {
           </div>
         )}
       </div>
+
+      {/* #8 Spoilage Alert Modal */}
+      {spoilageAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setSpoilageAlert(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in border-2 border-red-200 dark:border-red-800" onClick={(e) => e.stopPropagation()}>
+            <div className="text-center mb-4">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+                <AlertTriangle size={32} className="text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-red-700 dark:text-red-400">{t('spoilage.alertTitle')}</h3>
+              <p className="text-sm text-red-600/70 dark:text-red-400/60 mt-1">{t('spoilage.alertSubtitle')}</p>
+            </div>
+            <div className="bg-red-50 dark:bg-red-900/10 rounded-xl p-4 space-y-2.5 mb-4">
+              <p className="text-sm font-bold text-red-700 dark:text-red-400">{t('spoilage.disposalTitle')}</p>
+              {['tip1', 'tip2', 'tip3', 'tip4', 'tip5'].map((key) => (
+                <p key={key} className="text-sm text-red-600/80 dark:text-red-400/70 flex items-start gap-2">
+                  <span className="flex-shrink-0 mt-0.5">•</span>
+                  {t(`spoilage.${key}`)}
+                </p>
+              ))}
+            </div>
+            <div className="flex flex-col gap-2">
+              <button onClick={() => setSpoilageAlert(false)} className="btn-primary w-full !bg-red-500 hover:!bg-red-600">
+                {t('spoilage.dismiss')}
+              </button>
+              <button
+                onClick={() => { setSpoilageMuted(true); setSpoilageAlert(false); }}
+                className="text-xs text-gray-400 hover:text-gray-600 text-center py-1"
+              >
+                {t('spoilage.dontShowAgain')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Zoom Modal */}
       {zoomImage && (
