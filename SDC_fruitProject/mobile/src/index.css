@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior: none;
+  }
+
+  body {
+    @apply transition-colors duration-300;
+    /* Safe area for notched phones */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  ::selection {
+    @apply bg-primary-200 dark:bg-primary-800/50 text-primary-900 dark:text-primary-100;
+  }
+
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500/40 ring-offset-2 ring-offset-white dark:ring-offset-gray-950 rounded-lg;
+  }
+}
+
+@layer components {
+  /* Glass card */
+  .card {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-glass border border-gray-200/60 dark:border-gray-800/60 p-4;
+    @apply transition-all duration-300;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold;
+    @apply bg-primary-600 dark:bg-primary-500 text-white;
+    @apply shadow-md shadow-primary-600/20 dark:shadow-primary-500/15;
+    @apply hover:bg-primary-700 dark:hover:bg-primary-400;
+    @apply active:scale-[0.97] active:shadow-sm active:bg-primary-800 dark:active:bg-primary-600;
+    @apply transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold;
+    @apply bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200;
+    @apply border border-gray-200 dark:border-gray-700 shadow-sm;
+    @apply active:scale-[0.97] active:bg-gray-300 dark:active:bg-gray-600;
+    @apply transition-all duration-200;
+  }
+
+  /* Danger button */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold;
+    @apply bg-red-600 dark:bg-red-500 text-white;
+    @apply shadow-md shadow-red-600/20 dark:shadow-red-500/15;
+    @apply active:scale-[0.97] active:shadow-sm;
+    @apply transition-all duration-200;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply block w-full rounded-xl border border-gray-200/80 dark:border-gray-700/80;
+    @apply bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm;
+    @apply px-4 py-3 text-base text-gray-900 dark:text-gray-100 placeholder-gray-400;
+    @apply focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 focus:bg-white dark:focus:bg-gray-900;
+    @apply transition-all duration-200;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply animate-pulse bg-gray-200/70 dark:bg-gray-800/70 rounded-xl;
+  }
+
+  /* Gradient text */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-accent-500;
+  }
+
+  /* Glass surface */
+  .glass {
+    @apply bg-white/60 dark:bg-gray-900/60 backdrop-blur-2xl border border-white/20 dark:border-gray-800/40;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes progressFill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+/* Bottom tab safe area padding */
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 16px);
+}

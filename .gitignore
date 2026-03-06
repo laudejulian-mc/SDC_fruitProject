@@ -1,0 +1,40 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Vite
+.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Django
+*.sqlite3
+SDC_fruitProject/backend/media/
+
+# Node
+node_modules/
+dist/
+.expo/
+
+# ML weights (large files)
+SDC_fruitProject/backend/detection/model_weights/
+SDC_fruitProject/backend/ml_model/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*

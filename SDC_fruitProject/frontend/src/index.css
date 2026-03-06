@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Smooth scroll globally */
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply transition-colors duration-300;
+  }
+
+  /* Modern scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 dark:bg-gray-700 rounded-full;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-600;
+  }
+
+  /* Selection color */
+  ::selection {
+    @apply bg-primary-200 dark:bg-primary-800/50 text-primary-900 dark:text-primary-100;
+  }
+
+  /* Focus ring style */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500/40 ring-offset-2 ring-offset-white dark:ring-offset-gray-950 rounded-lg;
+  }
+}
+
+@layer components {
+  /* Glass card — the core surface */
+  .card {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-glass border border-gray-200/60 dark:border-gray-800/60 p-6;
+    @apply transition-all duration-300;
+  }
+  .card:hover {
+    @apply shadow-lg;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-base font-semibold;
+    @apply bg-primary-600 dark:bg-primary-500 text-white;
+    @apply shadow-md shadow-primary-600/20 dark:shadow-primary-500/15;
+    @apply hover:bg-primary-700 dark:hover:bg-primary-400 hover:shadow-lg hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:shadow-sm active:bg-primary-800 dark:active:bg-primary-600;
+    @apply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500;
+    @apply transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-base font-semibold;
+    @apply bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200;
+    @apply border border-gray-200 dark:border-gray-700 shadow-sm;
+    @apply hover:bg-gray-200 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:shadow-sm active:bg-gray-300 dark:active:bg-gray-600;
+    @apply transition-all duration-200;
+  }
+
+  /* Danger button */
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-base font-semibold;
+    @apply bg-red-600 dark:bg-red-500 text-white;
+    @apply shadow-md shadow-red-600/20 dark:shadow-red-500/15;
+    @apply hover:bg-red-700 dark:hover:bg-red-400 hover:shadow-lg hover:-translate-y-0.5;
+    @apply active:translate-y-0 active:shadow-sm;
+    @apply transition-all duration-200;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply block w-full rounded-xl border border-gray-200/80 dark:border-gray-700/80;
+    @apply bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm;
+    @apply px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400;
+    @apply focus:border-primary-400 focus:ring-2 focus:ring-primary-500/20 focus:bg-white dark:focus:bg-gray-900;
+    @apply transition-all duration-200;
+  }
+
+  /* Skeleton loader */
+  .skeleton {
+    @apply animate-pulse bg-gray-200/70 dark:bg-gray-800/70 rounded-xl;
+  }
+
+  /* Gradient text utility */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-accent-500;
+  }
+
+  /* Glass surface */
+  .glass {
+    @apply bg-white/60 dark:bg-gray-900/60 backdrop-blur-2xl border border-white/20 dark:border-gray-800/40;
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.15) 50%, transparent 75%);
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+
+  /* Juice button — fun interactive accent button */
+  .btn-juice {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-base font-bold;
+    @apply bg-primary-600 dark:bg-primary-500 text-white;
+    @apply shadow-lg shadow-primary-600/25 dark:shadow-primary-500/20;
+    @apply border border-primary-500/30 dark:border-primary-400/30;
+    @apply transition-all duration-200 ease-out;
+    @apply cursor-pointer select-none;
+    transform: translateY(0) scale(1);
+  }
+  .btn-juice:hover {
+    @apply bg-primary-700 dark:bg-primary-400 shadow-xl;
+    transform: translateY(-2px) scale(1.02);
+  }
+  .btn-juice:active {
+    @apply bg-primary-800 dark:bg-primary-600 shadow-md;
+    transform: translateY(1px) scale(0.98);
+  }
+  .btn-juice:disabled {
+    @apply opacity-50 cursor-not-allowed;
+    transform: none;
+  }
+  .btn-juice:disabled:hover {
+    transform: none;
+  }
+
+  /* Bento card — for bento grid items */
+  .bento-card {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-2xl;
+    @apply border border-gray-200/50 dark:border-gray-800/50;
+    @apply p-5 transition-all duration-300;
+    @apply hover:shadow-lg hover:border-gray-300/60 dark:hover:border-gray-700/60;
+    @apply hover:-translate-y-0.5;
+  }
+}
+
+/* Transition overlay animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes progressFill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
