@@ -23,8 +23,8 @@ import {
 } from 'recharts';
 
 const METHOD_ICONS = { upload: Upload, batch: Layers, live: Video, capture: Camera };
-const LABEL_ICONS = { Fresh: CheckCircle2, Bruised: AlertTriangle, Rot: XCircle, Scab: ShieldAlert, 'Black Spot': AlertTriangle, Rotten: XCircle, Overripe: AlertTriangle, Unripe: AlertTriangle, Mold: XCircle, 'Sun Burn': AlertTriangle };
-const LABEL_COLORS_MAP = { Fresh: 'text-green-500', Bruised: 'text-amber-500', Rot: 'text-red-500', Scab: 'text-orange-500', 'Black Spot': 'text-purple-500', Rotten: 'text-red-600', Overripe: 'text-yellow-500', Unripe: 'text-lime-500', Mold: 'text-teal-500', 'Sun Burn': 'text-rose-500' };
+const LABEL_ICONS = { Fresh: CheckCircle2, Rotten: XCircle };
+const LABEL_COLORS_MAP = { Fresh: 'text-green-500', Rotten: 'text-red-600' };
 
 /* ── Freshness Index Ring ─────────────────────────────── */
 function FreshnessRing({ value, size = 96, t = (k) => k }) {
@@ -109,16 +109,14 @@ export default function Dashboard() {
 
   const totalScans = stats.total_scans;
   const freshCount = stats.quality_distribution.Fresh || 0;
-  const rottenCount = (stats.quality_distribution.Rotten || 0) + (stats.quality_distribution.Rot || 0);
-  const gradeACount = stats.grade_distribution['Grade A'] || 0;
+  const rottenCount = stats.quality_distribution.Rotten || 0;
 
   const avgConf = stats.recent_detections.length
     ? (stats.recent_detections.reduce((s, d) => s + d.confidence, 0) / stats.recent_detections.length * 100).toFixed(1)
     : 0;
 
   const healthRate = totalScans > 0 ? ((freshCount / totalScans) * 100).toFixed(1) : 0;
-  const rejectCount = stats.grade_distribution['Reject'] || 0;
-  const rejectRate = totalScans > 0 ? ((rejectCount / totalScans) * 100).toFixed(1) : 0;
+  const rejectRate = totalScans > 0 ? ((rottenCount / totalScans) * 100).toFixed(1) : 0;
   const avgSpeed = stats.recent_detections.length
     ? (stats.recent_detections.reduce((s, d) => s + (d.processing_time || 0), 0) / stats.recent_detections.length).toFixed(2)
     : '—';
@@ -161,7 +159,7 @@ export default function Dashboard() {
         <StatCard icon={ScanSearch} label={t('dashboard.totalExams')} value={totalScans} color="primary" sub={t('dashboard.allTimeDiagnoses')} />
         <StatCard icon={HeartPulse} label={t('dashboard.healthyFruit')} value={freshCount} color="primary" sub={`${healthRate}% ${t('dashboard.healthRateLabel')}`} />
         <StatCard icon={Target} label={t('dashboard.avgConfidence')} value={`${avgConf}%`} color="blue" sub={t('dashboard.diagnosticAccuracy')} />
-        <StatCard icon={Award} label={t('dashboard.gradeA')} value={gradeACount} color="yellow" sub={t('dashboard.premiumQuality')} />
+        <StatCard icon={Leaf} label={t('dashboard.gradeA')} value={freshCount} color="green" sub={`${healthRate}% ${t('dashboard.freshRate')}`} />
       </div>
 
       {/* Secondary stat cards - row 2 */}
@@ -169,7 +167,7 @@ export default function Dashboard() {
         {Object.entries(stats.quality_distribution).map(([label, count]) => {
           const pct = totalScans > 0 ? ((count / totalScans) * 100).toFixed(0) : 0;
           const Icon = LABEL_ICONS[label] || AlertTriangle;
-          const barColor = label === 'Fresh' ? 'bg-green-500' : label === 'Bruised' ? 'bg-amber-500' : label === 'Rot' ? 'bg-red-500' : label === 'Scab' ? 'bg-orange-500' : label === 'Black Spot' ? 'bg-purple-500' : label === 'Rotten' ? 'bg-red-600' : label === 'Overripe' ? 'bg-yellow-500' : label === 'Unripe' ? 'bg-lime-500' : label === 'Mold' ? 'bg-teal-500' : label === 'Sun Burn' ? 'bg-rose-500' : 'bg-gray-500';
+          const barColor = label === 'Fresh' ? 'bg-green-500' : 'bg-red-500';
           return (
             <div key={label} className="card animate-slide-up space-y-2">
               <div className="flex items-center justify-between">

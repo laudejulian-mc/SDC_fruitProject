@@ -16,8 +16,6 @@ const FILTER_OPTIONS = [
   { key: 'all', icon: 'layers' },
   { key: 'Fresh', icon: 'checkmark-circle', color: '#22c55e' },
   { key: 'Rotten', icon: 'alert-circle', color: '#ef4444' },
-  { key: 'Overripe', icon: 'warning', color: '#f59e0b' },
-  { key: 'Unripe', icon: 'leaf', color: '#3b82f6' },
 ];
 
 export default function HistoryScreen() {

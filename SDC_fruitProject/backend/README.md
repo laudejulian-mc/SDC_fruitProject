@@ -1,4 +1,4 @@
-# Django Backend - Apple Quality Detection (YOLOv8)
+# Django Backend - Fruit Freshness Detection (YOLOv8)
 
 ## Stack
 - Django + DRF
@@ -7,6 +7,11 @@
 - Ultralytics YOLOv8
 - Pillow
 - CORS + dotenv
+
+## Classification
+The model outputs two labels:
+- **Fresh** — Good quality fruit
+- **Rotten** — Spoiled fruit
 
 ## Project Layout
 - `config/` project settings and root urls
@@ -22,7 +27,7 @@
 3. Copy env:
    - `copy .env.example .env` (Windows) or `cp .env.example .env`
 4. Put model file in:
-   - `apps/detection/model_weights/apple_quality_yolov8.pt`
+   - `apps/detection/model_weights/best.pt`
 5. Run migrations:
    - `python manage.py migrate`
 6. Create user:

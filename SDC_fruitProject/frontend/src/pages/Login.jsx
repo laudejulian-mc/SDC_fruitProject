@@ -66,7 +66,7 @@ export default function Login() {
           <div className="space-y-4 pt-4">
             {[
               { icon: Microscope, text: 'AI diagnosis for 5 fruit types' },
-              { icon: Shield, text: 'Grade A through Reject grading system' },
+              { icon: Shield, text: 'Fresh vs Rotten classification' },
               { icon: Apple, text: 'Real-time camera & batch processing' },
             ].map(({ icon: Icon, text }, i) => (
               <div key={i} className="flex items-center gap-3 text-white/90">

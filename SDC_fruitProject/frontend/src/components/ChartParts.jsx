@@ -12,12 +12,10 @@ export const CHART_COLORS = {
     Rotten: '#ef4444',
   },
   // Grades
-  grade: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],    // A, B, C, Reject
+  grade: ['#10b981', '#ef4444'],    // Fresh, Rotten
   gradeMap: {
-    'Grade A': '#10b981',
-    'Grade B': '#3b82f6',
-    'Grade C': '#f59e0b',
-    'Reject': '#ef4444',
+    Fresh: '#10b981',
+    Rotten: '#ef4444',
   },
   // Fruits
   fruit: { apple: '#f87171', orange: '#fb923c', mango: '#fbbf24', grapes: '#a78bfa', banana: '#fde047' },

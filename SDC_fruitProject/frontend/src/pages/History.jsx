@@ -244,7 +244,7 @@ export default function History() {
               className="input-field w-full text-xs"
             >
               <option value="">All Grades</option>
-              {['Grade A', 'Grade B', 'Grade C', 'Reject'].map((g) => <option key={g} value={g}>{g}</option>)}
+              {['Fresh', 'Rotten'].map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
           </div>
           <div>

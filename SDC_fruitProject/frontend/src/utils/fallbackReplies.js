@@ -20,7 +20,7 @@ Here are the key signs to look for:
 5. Weight — A fresh mango feels heavy for its size (more juice!).
 6. Skin Integrity — No bruising, soft spots, or signs of decay.
 
-💡 FruitMD detects: Fresh, Bruised, Black Spot, and Rotten conditions in mangoes.
+💡 FruitMD detects: Fresh and Rotten conditions in mangoes.
 
 — Dr. FruitMD 🩺`,
   },
@@ -38,7 +38,7 @@ Here's your diagnostic checklist:
 5. Seed Color — Cut one open: brown/dark seeds = mature; white seeds = picked too early.
 6. Aroma — Pleasant, slightly sweet smell. Fermented odor = rot.
 
-💡 FruitMD detects: Fresh, Bruised, Rot, and Scab conditions in apples.
+💡 FruitMD detects: Fresh and Rotten conditions in apples.
 
 — Dr. FruitMD 🩺`,
   },
@@ -54,7 +54,7 @@ Here's your diagnostic checklist:
 5. Smell — Fresh citrus aroma at the stem end = good sign!
 6. No Mold — Green or white fuzzy spots = mold growth. Discard immediately.
 
-💡 FruitMD detects: Fresh, Bruised, Mold, and Overripe conditions in oranges.
+💡 FruitMD detects: Fresh and Rotten conditions in oranges.
 
 — Dr. FruitMD 🩺`,
   },
@@ -70,7 +70,7 @@ Here's your diagnostic checklist:
 5. No Mold — Check near the stem cluster for fuzzy grey or white mold.
 6. Attachment — Grapes should stay firmly on the stem when shaken.
 
-💡 FruitMD detects: Fresh, Bruised, Mold, and Rot conditions in grapes.
+💡 FruitMD detects: Fresh and Rotten conditions in grapes.
 
 — Dr. FruitMD 🩺`,
   },
@@ -86,7 +86,7 @@ Here's your diagnostic checklist:
 5. No Large Brown Patches — Small freckles are fine, large dark areas = overripe or bruised.
 6. Peel Integrity — Splitting peel = too ripe for fresh eating (great for baking though!).
 
-💡 FruitMD detects: Fresh, Bruised, Overripe, and Unripe conditions in bananas.
+💡 FruitMD detects: Fresh and Rotten conditions in bananas.
 
 — Dr. FruitMD 🩺`,
   },
@@ -149,35 +149,26 @@ General Rules:
 
 — Dr. FruitMD 🩺`,
   },
-  // ─── Grading ─────────────────────────────────────────────
+  // ─── Classification ──────────────────────────────────────
   {
-    keywords: ['grade', 'grading', 'grade a', 'grade b', 'grade c', 'quality', 'classification', 'reject'],
-    reply: `🏆 Fruit Quality Grading System — Dr. FruitMD Explains:
+    keywords: ['grade', 'grading', 'fresh', 'rotten', 'quality', 'classification', 'freshness'],
+    reply: `🏆 Fruit Freshness Classification — Dr. FruitMD Explains:
 
-Grade A (Premium):
-- Perfect shape, uniform color
-- No blemishes, bruises, or defects
-- Optimal firmness and size
-- Ideal for fresh consumption and premium markets
+Fresh:
+- Vibrant, natural color for the variety
+- Firm texture, no soft spots
+- Pleasant, natural aroma
+- No visible mold, dark patches, or decay
+- Safe and ideal for consumption
 
-Grade B (Standard):
-- Minor cosmetic imperfections (small spots, slight color variation)
-- Good firmness and flavor
-- Suitable for regular retail sale
-- Still excellent for eating!
+Rotten:
+- Discoloration, dark or mushy areas
+- Soft, squishy texture throughout
+- Foul, sour, or fermented odor
+- Visible mold, oozing, or significant decay
+- Unsafe for consumption — discard immediately
 
-Grade C (Economy):
-- Noticeable blemishes, irregular shape
-- May have minor soft spots
-- Better for cooking, juicing, or processing
-- Often sold at discount
-
-Reject:
-- Significant damage, mold, or pest infestation
-- Unsafe or unpleasant for consumption
-- Should be composted, not sold
-
-💡 Key Factors: Size, color uniformity, firmness, surface defects, pest damage, and disease presence.
+💡 FruitMD uses AI-powered image analysis to classify your fruit as Fresh or Rotten with high confidence.
 
 — Dr. FruitMD 🩺`,
   },
@@ -295,25 +286,25 @@ General Best Practices:
     keywords: ['who are you', 'what are you', 'about you', 'your name', 'fruitmD', 'what can you do', 'help', 'what do you do'],
     reply: `🩺 Hello! I'm Dr. FruitMD — The Fruit Doctor!
 
-I'm an AI-powered fruit quality assistant specializing in:
+I'm an AI-powered fruit freshness assistant specializing in:
 
-🍎 Apple & Mango Quality Assessment
-- Quality detection (Fresh, Bruised, Rot, Scab, Black Spot, Rotten)
-- Quality grading (Grade A, B, C, Reject)
+🍎 Fruit Freshness Detection
+- Freshness classification (Fresh or Rotten)
+- Supports 5 fruit types: apple, orange, mango, grape, banana
 
 📋 What I Can Help With:
-- 🔍 Identifying fruit quality and defects
-- 🏆 Understanding fruit grading systems
+- 🔍 Identifying fruit freshness
+- 🏆 Understanding freshness classification
 - 🧊 Storage and preservation tips
 - 💊 Nutritional information
 - 🌱 Agricultural and cultivation advice
 - 📊 Interpreting your detection results
 
 Try asking me:
-- "How to tell if a mango is ripe?"
+- "How to tell if a mango is fresh?"
 - "What causes apples to rot?"
 - "Tips for storing fruit longer"
-- "What does Grade A mean?"
+- "What does Fresh classification mean?"
 
 I'm currently running in offline mode with my built-in knowledge base, but I'm still happy to help! 🍎🥭
 
@@ -415,11 +406,10 @@ What interests you most? 😊
     reply: `📋 FruitMD Quick Summary:
 
 🩺 What FruitMD Does:
-An AI-powered fruit quality detection system that analyzes apples and mangoes for ripeness and quality.
+An AI-powered fruit freshness detection system that analyzes apples, oranges, mangoes, grapes, and bananas.
 
 📊 Detection Categories:
-- Ripeness: Ripe, Unripe, Overripe, Rotten
-- Quality: Grade A, Grade B, Grade C, Reject
+- Freshness: Fresh or Rotten
 
 🔑 Key Features:
 - 📸 Single & batch photo detection

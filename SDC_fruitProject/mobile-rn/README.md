@@ -1,6 +1,6 @@
 # FruitMD – React Native (Expo) Mobile App
 
-This is the **React Native** version of the FruitMD mobile app, converted from the original React/Vite web-based mobile app. It uses the same Django backend API.
+This is the **React Native** version of the FruitMD mobile app for **fruit freshness detection** (Fresh vs Rotten). It uses the same Django backend API and supports multiple fruit types (apple, banana, orange, mango, grape).
 
 ## Tech Stack
 

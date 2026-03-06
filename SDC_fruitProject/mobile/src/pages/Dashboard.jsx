@@ -67,7 +67,6 @@ export default function Dashboard() {
 
   const totalScans = stats.total_scans;
   const freshCount = stats.quality_distribution.Fresh || 0;
-  const gradeACount = stats.grade_distribution['Grade A'] || 0;
   const healthRate = totalScans > 0 ? ((freshCount / totalScans) * 100).toFixed(1) : 0;
   const avgConf = stats.recent_detections.length
     ? (stats.recent_detections.reduce((s, d) => s + d.confidence, 0) / stats.recent_detections.length * 100).toFixed(1)
@@ -108,7 +107,7 @@ export default function Dashboard() {
         <StatCard icon={ScanSearch} label={t('dashboard.totalExams')} value={totalScans} color="primary" />
         <StatCard icon={HeartPulse} label={t('dashboard.healthyFruit')} value={freshCount} color="primary" />
         <StatCard icon={Target} label={t('dashboard.avgConfidence')} value={`${avgConf}%`} color="blue" />
-        <StatCard icon={Award} label={t('dashboard.gradeA')} value={gradeACount} color="yellow" />
+        <StatCard icon={Leaf} label={t('dashboard.gradeA')} value={freshCount} color="green" />
       </div>
 
       {/* Freshness + Speed row */}

@@ -1,35 +1,47 @@
-# Apple Quality Detection Web Application
+# Fruit Freshness Detection Web Application
 
-A full-stack web application for intelligent apple quality detection using machine learning. Built with **Django REST Framework** (backend), **React + Tailwind CSS** (frontend), and **SQLite** (database).
+A full-stack web application for intelligent fruit freshness detection using machine learning. Built with **Django REST Framework** (backend), **React + Tailwind CSS** (frontend), **React Native / Expo** (mobile), and **SQLite** (database).
 
 ---
 
 ## Architecture
 
 ```
-front-end react/
+SDC_fruitProject/
 ├── backend/                  # Django REST API
-│   ├── core/                 # Django project settings, URLs, WSGI
+│   ├── config/               # Django project settings, URLs, WSGI
 │   ├── detection/            # Detection app (models, views, services, serializers, URLs)
-│   ├── ml_model/             # Place your trained .h5 model here
+│   ├── apps/                 # Alternate app layout (users, detection)
 │   ├── media/                # Uploaded images (auto-created)
 │   ├── db.sqlite3            # SQLite database (auto-created)
 │   ├── manage.py
 │   └── requirements.txt
 │
-└── frontend/                 # React + Vite + Tailwind
+├── frontend/                 # React + Vite + Tailwind (web)
+│   ├── src/
+│   │   ├── components/       # Shared UI components (Layout, StatCard, ResultCard, etc.)
+│   │   ├── contexts/         # ThemeContext (dark mode), AuthContext, I18nContext
+│   │   ├── pages/            # Dashboard, Detect, LiveScan, History, Reports, Chatbot
+│   │   ├── api.js            # Axios API layer
+│   │   ├── App.jsx           # Router setup
+│   │   ├── main.jsx          # Entry point
+│   │   └── index.css         # Tailwind directives + custom utility classes
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── tailwind.config.js
+│   └── index.html
+│
+├── mobile/                   # React + Vite mobile PWA
+│
+└── mobile-rn/                # React Native + Expo mobile app
     ├── src/
-    │   ├── components/       # Shared UI components (Layout, StatCard, ResultCard, etc.)
-    │   ├── contexts/         # ThemeContext (dark mode), AuthContext (role system)
-    │   ├── pages/            # Dashboard, Detect, LiveScan, History, Reports
-    │   ├── api.js            # Axios API layer
-    │   ├── App.jsx           # Router setup
-    │   ├── main.jsx          # Entry point
-    │   └── index.css         # Tailwind directives + custom utility classes
+    │   ├── screens/          # All app screens
+    │   ├── components/       # Shared RN components
+    │   ├── contexts/         # Auth, I18n, Theme
+    │   ├── i18n/             # EN, VI, FIL translations
+    │   └── utils/            # Fruit constants, chatbot fallbacks
     ├── package.json
-    ├── vite.config.js        # Dev proxy to Django backend
-    ├── tailwind.config.js
-    └── index.html
+    └── app.json
 ```
 
 ## Features
@@ -37,22 +49,22 @@ front-end react/
 | Feature | Description |
 |---|---|
 | **Single Upload** | Drag-and-drop or file-select with animated result card |
-| **Batch Upload** | Process up to 20 images, grid results with per-image status |
-| **Live Camera** | Real-time detection via webcam with configurable interval |
+| **Batch Upload** | Process multiple images with per-image progress and status |
+| **Live Camera** | Real-time detection via webcam/phone camera |
 | **Manual Capture** | Camera snapshot with preview modal (confirm/retake) |
-| **Dashboard** | Interactive charts (pie, bar, line), stat cards, recent activity |
+| **Dashboard** | Interactive charts, stat cards, recent activity, live clock |
 | **History** | Sortable, filterable, paginated data table with thumbnails |
 | **Reports** | Date/category filters, summary preview, CSV export |
 | **Dark Mode** | System-aware with manual toggle |
-| **Role System** | Admin (full) / Inspector (scan+view) / Guest via UI switcher |
-| **Grading** | Grade A (≥85%), B (≥70%), C (≥50%), Reject (<50%) |
+| **Multilingual** | English, Vietnamese, Filipino |
+| **AI Insights** | Rich tips on results based on fruit type and confidence |
 
-## Quality Labels
+## Classification Labels
 
-- **Ripe** — Good quality, ready for consumption
-- **Unripe** — Not yet ready
-- **Overripe** — Past optimal freshness
-- **Rotten** — Spoiled, not suitable
+The model classifies fruit into two categories:
+
+- **Fresh** — Good quality, safe for consumption
+- **Rotten** — Spoiled, not suitable for consumption
 
 ## API Endpoints
 
@@ -116,26 +128,25 @@ npm run dev
 
 ## ML Model
 
-The app ships with a **simulation mode** that generates realistic predictions when no model file is found. To enable real inference:
+The backend uses a **YOLOv8** model trained to detect fruit freshness (Fresh vs Rotten) across multiple fruit types (apple, banana, orange, mango, grape).
 
-1. Train a Keras/TensorFlow model with 4 output classes: `[Ripe, Unripe, Overripe, Rotten]`
-2. Input shape: `(224, 224, 3)`, normalized `[0, 1]`
-3. Save as `.h5` format
-4. Place at `backend/ml_model/apple_quality_model.h5`
-5. Restart the Django server
+1. Train a YOLOv8 model with 2 output classes: `[Fresh, Rotten]`
+2. Save as `.pt` format
+3. Place at `backend/detection/model_weights/best.pt`
+4. Restart the Django server
 
 ## Design Decisions
 
 - **Service Layer Pattern**: ML inference is encapsulated in `detection/services.py`, loaded once at startup
 - **Simulation Fallback**: Allows full-stack development without a trained model
-- **Grading Thresholds**: Configurable in `services.py` (Grade A ≥ 85%, B ≥ 70%, C ≥ 50%)
 - **Vite Proxy**: Frontend dev server proxies API calls to Django — no CORS issues in development
 - **Component Architecture**: Reusable card, badge, toast, skeleton components
-- **Dark Mode**: CSS class strategy via `ThemeContext` with `localStorage` persistence
-- **Role System**: Client-side role switching for demo; easily extensible to JWT-based auth
+- **Dark Mode**: CSS class strategy with `localStorage` / `AsyncStorage` persistence
+- **Token Auth**: JWT-based auth for API access across web and mobile
 
 ## Tech Stack
 
-- **Backend**: Django 4.2, Django REST Framework, Pillow, NumPy, TensorFlow (optional)
-- **Frontend**: React 18, React Router 6, Vite 5, Tailwind CSS 3, Recharts, Lucide Icons, Axios
+- **Backend**: Django 4.2, Django REST Framework, Pillow, Ultralytics YOLOv8
+- **Frontend (Web)**: React 18, React Router 6, Vite 5, Tailwind CSS 3, Recharts, Lucide Icons, Axios
+- **Frontend (Mobile)**: React Native, Expo ~52, React Navigation 6, Ionicons
 - **Database**: SQLite 3

@@ -296,7 +296,7 @@ export default function Detect() {
           </div>
         </div>
 
-        {/* ── Grading Scale + Photo Tips side by side: 4 cols each ── */}
+        {/* ── Classification Info + Photo Tips side by side: 4 cols each ── */}
         <div className="col-span-6 sm:col-span-6 lg:col-span-4">
           <div className="card h-full">
             <h3 className="text-base font-bold flex items-center gap-2 mb-3">
@@ -304,10 +304,8 @@ export default function Detect() {
             </h3>
             <div className="space-y-2.5">
               {[
-                { grade: 'Grade A', range: '≥ 85%', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
-                { grade: 'Grade B', range: '≥ 70%', color: 'text-sky-500', bg: 'bg-sky-50 dark:bg-sky-900/10' },
-                { grade: 'Grade C', range: '≥ 50%', color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/10' },
-                { grade: 'Reject', range: '< 50%', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/10' },
+                { grade: 'Fresh', range: 'Good quality', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-900/10' },
+                { grade: 'Rotten', range: 'Poor quality', color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/10' },
               ].map(({ grade, range, color, bg }) => (
                 <div key={grade} className={`flex items-center justify-between text-sm p-2.5 rounded-lg ${bg} hover:scale-[1.02] transition-transform`}>
                   <span className={`font-bold ${color}`}>{grade}</span>

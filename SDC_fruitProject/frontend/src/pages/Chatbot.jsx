@@ -9,14 +9,14 @@ import {
 import clsx from 'clsx';
 
 const SUGGESTIONS = [
-  { text: 'What does apple scab look like?', emoji: '🍎' },
-  { text: 'What causes black spots on mangoes?', emoji: '🥭' },
-  { text: 'How to tell if oranges have mold?', emoji: '🍊' },
-  { text: 'When are grapes overripe?', emoji: '�' },
-  { text: 'How to tell if a banana is unripe?', emoji: '🍌' },
+  { text: 'How can I tell if an apple is fresh?', emoji: '🍎' },
+  { text: 'What causes mangoes to rot quickly?', emoji: '🥭' },
+  { text: 'How to spot rotten oranges?', emoji: '🍊' },
+  { text: 'How long do grapes stay fresh?', emoji: '🍇' },
+  { text: 'How to keep bananas fresh longer?', emoji: '🍌' },
   { text: 'Tips for storing fruits longer', emoji: '🧊' },
-  { text: 'What does Grade A quality mean?', emoji: '🏆' },
-  { text: 'How to spot bruised fruit', emoji: '🔍' },
+  { text: 'What does Fresh classification mean?', emoji: '✅' },
+  { text: 'How to prevent fruit from rotting', emoji: '🔍' },
 ];
 
 const QUICK_REPLIES = [

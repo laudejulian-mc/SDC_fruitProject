@@ -26,24 +26,14 @@ const en = {
   // ─── Labels ─────────────────────────────────────────────
   labels: {
     Fresh: 'Fresh',
-    Bruised: 'Bruised',
-    Rot: 'Rot',
     Rotten: 'Rotten',
-    Scab: 'Scab',
-    'Black Spot': 'Black Spot',
-    Overripe: 'Overripe',
-    Unripe: 'Unripe',
-    'Sun Burn': 'Sun Burn',
-    Mold: 'Mold',
   },
   allLabels: 'All Labels',
 
-  // ─── Grades ─────────────────────────────────────────────
+  // ─── Grades (simplified to Fresh/Rotten) ─────────────────
   grades: {
-    'Grade A': 'Grade A',
-    'Grade B': 'Grade B',
-    'Grade C': 'Grade C',
-    Reject: 'Reject',
+    Fresh: 'Fresh',
+    Rotten: 'Rotten',
   },
   allGrades: 'All Grades',
 
@@ -123,8 +113,8 @@ const en = {
     healthRateLabel: 'health rate',
     avgConfidence: 'Avg Confidence',
     diagnosticAccuracy: 'Diagnostic accuracy',
-    gradeA: 'Grade A',
-    premiumQuality: 'Premium quality',
+    gradeA: 'Fresh Rate',
+    premiumQuality: 'Fresh detections',
     freshnessIndex: 'Freshness Index',
     excellent: 'Excellent',
     fair: 'Fair',
@@ -133,8 +123,8 @@ const en = {
     perExam: 'Per examination',
     fast: '⚡ Fast',
     normal: '🔄 Normal',
-    rejectRate: 'Reject Rate',
-    rejected: 'rejected',
+    rejectRate: 'Rotten Rate',
+    rejected: 'rotten',
     recentActivity: 'Recent Activity',
     lastDays: 'Last {n} days',
     patientDistribution: 'Patient Distribution by Fruit',
@@ -369,23 +359,15 @@ const en = {
     deepLearning: 'Deep Learning',
     instant: 'Instant',
     lessThan2Sec: '< 2 sec',
-    gradesLabel: 'Grades',
-    gradesList: 'A, B, C, Reject',
+    gradesLabel: 'Classification',
+    gradesList: 'Fresh, Rotten',
     footer: 'Sign in as Admin for dashboard analytics, history & reports',
   },
 
   // ─── Health category descriptions ───────────────────────
   healthDesc: {
     Fresh: 'Healthy — ready to enjoy',
-    Bruised: 'Physical damage detected',
-    Rot: 'Decay / not safe',
     Rotten: 'Decay / not safe',
-    Scab: 'Fungal surface disease',
-    'Black Spot': 'Surface disease',
-    Overripe: 'Past optimal ripeness',
-    Unripe: 'Not yet mature',
-    'Sun Burn': 'Sun damage on surface',
-    Mold: 'Fungal contamination',
   },
 
   // ─── ResultCard ─────────────────────────────────────────

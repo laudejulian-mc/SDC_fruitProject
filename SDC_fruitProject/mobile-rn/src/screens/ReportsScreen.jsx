@@ -110,7 +110,7 @@ export default function ReportsScreen() {
           {Object.entries(s.quality_distribution).map(([label, count]) => {
             const total = Object.values(s.quality_distribution).reduce((a, b) => a + b, 0);
             const pct = total > 0 ? (count / total) * 100 : 0;
-            const barColor = label === 'Fresh' ? c.green : label === 'Rotten' ? c.red : label === 'Overripe' ? c.amber : c.blue;
+            const barColor = label === 'Fresh' ? c.green : c.red;
             return (
               <View key={label} style={styles.distRow}>
                 <View style={styles.distLabelRow}>

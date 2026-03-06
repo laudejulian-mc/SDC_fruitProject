@@ -147,7 +147,7 @@ export default function Reports() {
                 className="input-field text-xs w-full"
               >
                 <option value="">All Grades</option>
-                {['Grade A', 'Grade B', 'Grade C', 'Reject'].map((g) => <option key={g} value={g}>{g}</option>)}
+                {['Fresh', 'Rotten'].map((g) => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div>
