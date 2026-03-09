@@ -410,6 +410,124 @@ const fil = {
     time: 'Oras',
     method: 'Paraan',
   },
+
+  // ─── #3 Pagsusuri ng Kalidad ng Larawan ─────────────────
+  quality: {
+    analyzing: 'Sinusuri ang kalidad ng larawan…',
+    score: 'Kalidad Score',
+    excellent: 'Napakagandang kalidad ng larawan!',
+    good: 'Magandang kalidad ng larawan.',
+    fair: 'Katamtaman — maaaring makaapekto sa katumpakan.',
+    poor: 'Mababang kalidad — subukang kumuha muli.',
+    blurry: 'Malabo ang larawan',
+    tooDark: 'Masyadong madilim ang larawan',
+    tooBright: 'Masyadong maliwanag ang larawan',
+    lowContrast: 'Mababang contrast ang larawan',
+    lowResolution: 'Mababang resolusyon ang larawan',
+    tooLarge: 'Masyadong malaki ang file',
+    passedAll: 'Lahat ng pagsusuri ay nakapasa!',
+    blur: 'Talas',
+    brightness: 'Liwanag',
+    contrast: 'Contrast',
+    enhanceNow: 'Auto-Enhance',
+    enhanced: 'Na-enhance na ang larawan!',
+    original: 'Orihinal',
+    showEdges: 'Ipakita Gilid',
+    hideEdges: 'Itago Gilid',
+  },
+
+  // ─── #8 Sistema ng Babala sa Pagkabulok ─────────────────
+  spoilage: {
+    alertTitle: '⚠️ May Pagkabulok na Nakita!',
+    alertSubtitle: 'Ang prutas na ito ay may palatandaan ng pagkabulok.',
+    disposalTitle: 'Mga Ligtas na Paraan ng Pagtapon',
+    tip1: 'Huwag kainin ang bulok na prutas — maaaring may nakasasamang bakterya.',
+    tip2: 'Gawing compost kung maaari, o itapon sa selyadong bag.',
+    tip3: 'Maghugas ng kamay pagkatapos hawakan ang bulok na prutas.',
+    tip4: 'Suriin ang kalapit na prutas para sa cross-contamination.',
+    tip5: 'Linisin ang lugar ng imbakan para maiwasan ang pagkalat ng amag.',
+    dismiss: 'Naintindihan Ko',
+    dontShowAgain: 'Huwag na ipakita sa session na ito',
+  },
+
+  // ─── #11 Buod ng Session ───────────────────────────────
+  session: {
+    title: 'Buod ng Session',
+    totalScans: 'Kabuuang Scans',
+    freshCount: 'Sariwa',
+    rottenCount: 'Bulok',
+    avgConfidence: 'Average na Kumpiyansa',
+    freshRate: 'Rate ng Kasariwaan',
+    sessionEmpty: 'Wala pang scans',
+    viewSummary: 'Tingnan ang Buod',
+    reset: 'I-reset ang Session',
+  },
+
+  // ─── #12 Pagtuklas ng Duplicate na Larawan ──────────────
+  duplicate: {
+    detected: 'Nakakita ng Duplicate na Larawan',
+    description: 'Ang larawang ito ay halos kapareho ng isang na-scan na kamakailan.',
+    continueAnyway: 'I-scan Pa Rin',
+    chooseAnother: 'Pumili ng Iba',
+  },
+
+  // ─── #13 Gabay sa Ilaw ────────────────────────────────
+  lighting: {
+    title: 'Gabay sa Ilaw',
+    optimal: 'Optimal na Ilaw ☀️',
+    acceptable: 'Katanggap-tanggap na Ilaw 🌤️',
+    poor: 'Mababang Ilaw 🌑',
+    tip: 'Pumunta sa may maliwanag na lugar para sa magandang resulta',
+    centerFruit: 'Ilagay ang prutas sa gitna ng frame',
+    holdSteady: 'Hawakan nang matatag ang camera',
+    good: 'Magandang Ilaw',
+    low: 'Mababang Ilaw',
+    tooDark: 'Masyadong Madilim',
+    moveBrighter: 'Pumunta sa mas maliwanag na lugar',
+  },
+
+  // ─── #16 Auto-Enhance ─────────────────────────────────
+  enhance: {
+    title: 'Auto-Enhance',
+    adjustBrightness: 'Liwanag',
+    adjustContrast: 'Contrast',
+    sharpen: 'Patalimin',
+    apply: 'I-apply',
+    reset: 'I-reset',
+    preview: 'Preview',
+  },
+
+  // ─── #19 Mode ng Paghahambing ng Resulta ───────────────
+  compare: {
+    title: 'Ihambing ang mga Resulta',
+    selectTwo: 'Pumili ng 2 rekord upang ihambing',
+    selected: '{n} napili',
+    compareBtn: 'Ihambing',
+    vsLabel: 'VS',
+    noSelection: 'Pumili ng eksaktong 2 rekord mula sa listahan.',
+    close: 'Isara ang Paghahambing',
+    betterResult: 'Mas Magandang Resulta',
+    metric: 'Sukatan',
+    result1: 'Resulta A',
+    result2: 'Resulta B',
+    maxTwo: 'Max 2. Alisin muna ang isa.',
+    label: 'Label',
+    confidence: 'Kumpiyansa',
+    grade: 'Grado',
+    analysis: 'Mabilisang Pagsusuri',
+    sameLabel: 'Parehong na-classify bilang',
+    diffLabel: 'Magkaibang labels',
+    confGap: 'Agwat ng kumpiyansa',
+    selectRecords: 'Pumili pa ng {n} rekord upang ihambing',
+  },
+
+  // ─── #5 Pagtuklas ng Gilid ng Prutas ──────────────────
+  boundary: {
+    title: 'Pagtuklas ng Gilid ng Prutas',
+    showOverlay: 'Ipakita Gilid',
+    hideOverlay: 'Itago Gilid',
+    analyzing: 'Tinutukoy ang mga gilid…',
+  },
 };
 
 export default fil;

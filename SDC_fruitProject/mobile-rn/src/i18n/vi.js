@@ -410,6 +410,124 @@ const vi = {
     time: 'Thời Gian',
     method: 'Phương Pháp',
   },
+
+  // ─── #3 Phát Hiện Chất Lượng Hình Ảnh ──────────────────
+  quality: {
+    analyzing: 'Đang phân tích chất lượng hình ảnh…',
+    score: 'Điểm Chất Lượng',
+    excellent: 'Chất lượng hình ảnh tuyệt vời!',
+    good: 'Chất lượng hình ảnh tốt.',
+    fair: 'Trung bình — có thể ảnh hưởng độ chính xác.',
+    poor: 'Kém — nên chụp lại.',
+    blurry: 'Hình ảnh bị mờ',
+    tooDark: 'Hình ảnh quá tối',
+    tooBright: 'Hình ảnh quá sáng',
+    lowContrast: 'Độ tương phản thấp',
+    lowResolution: 'Hình ảnh độ phân giải thấp',
+    tooLarge: 'Tệp quá lớn',
+    passedAll: 'Tất cả kiểm tra đều đạt!',
+    blur: 'Độ Nét',
+    brightness: 'Độ Sáng',
+    contrast: 'Tương Phản',
+    enhanceNow: 'Tự Động Nâng Cao',
+    enhanced: 'Đã nâng cao hình ảnh!',
+    original: 'Gốc',
+    showEdges: 'Hiện Viền',
+    hideEdges: 'Ẩn Viền',
+  },
+
+  // ─── #8 Hệ Thống Cảnh Báo Hư ──────────────────────────
+  spoilage: {
+    alertTitle: '⚠️ Phát Hiện Hư Hỏng!',
+    alertSubtitle: 'Trái cây này có dấu hiệu hư hỏng.',
+    disposalTitle: 'Mẹo Xử Lý An Toàn',
+    tip1: 'Không ăn trái cây thối — có thể chứa vi khuẩn có hại.',
+    tip2: 'Ủ phân nếu có thể, hoặc bỏ vào túi rác kín.',
+    tip3: 'Rửa tay sau khi xử lý trái cây thối.',
+    tip4: 'Kiểm tra các trái cây lân cận để tránh lây nhiễm.',
+    tip5: 'Vệ sinh khu vực bảo quản để ngăn nấm mốc.',
+    dismiss: 'Đã Hiểu',
+    dontShowAgain: 'Không hiển thị lại trong phiên này',
+  },
+
+  // ─── #11 Tóm Tắt Phiên ────────────────────────────────
+  session: {
+    title: 'Tóm Tắt Phiên',
+    totalScans: 'Tổng Quét',
+    freshCount: 'Tươi',
+    rottenCount: 'Thối',
+    avgConfidence: 'Độ Tin Cậy TB',
+    freshRate: 'Tỷ Lệ Tươi',
+    sessionEmpty: 'Chưa có quét nào',
+    viewSummary: 'Xem Tóm Tắt',
+    reset: 'Đặt Lại Phiên',
+  },
+
+  // ─── #12 Phát Hiện Hình Trùng Lặp ─────────────────────
+  duplicate: {
+    detected: 'Phát Hiện Hình Trùng Lặp',
+    description: 'Hình ảnh này giống với hình đã quét gần đây.',
+    continueAnyway: 'Quét Tiếp',
+    chooseAnother: 'Chọn Hình Khác',
+  },
+
+  // ─── #13 Hướng Dẫn Ánh Sáng ───────────────────────────
+  lighting: {
+    title: 'Hướng Dẫn Ánh Sáng',
+    optimal: 'Ánh Sáng Tối Ưu ☀️',
+    acceptable: 'Ánh Sáng Chấp Nhận 🌤️',
+    poor: 'Ánh Sáng Kém 🌑',
+    tip: 'Di chuyển đến nơi có ánh sáng tốt',
+    centerFruit: 'Đặt trái cây ở giữa khung',
+    holdSteady: 'Giữ camera ổn định',
+    good: 'Sáng Tốt',
+    low: 'Sáng Yếu',
+    tooDark: 'Quá Tối',
+    moveBrighter: 'Di chuyển đến nơi sáng hơn',
+  },
+
+  // ─── #16 Tự Động Nâng Cao ─────────────────────────────
+  enhance: {
+    title: 'Tự Động Nâng Cao',
+    adjustBrightness: 'Độ Sáng',
+    adjustContrast: 'Tương Phản',
+    sharpen: 'Làm Nét',
+    apply: 'Áp Dụng',
+    reset: 'Đặt Lại',
+    preview: 'Xem Trước',
+  },
+
+  // ─── #19 Chế Độ So Sánh Kết Quả AI ────────────────────
+  compare: {
+    title: 'So Sánh Kết Quả',
+    selectTwo: 'Chọn 2 bản ghi để so sánh',
+    selected: '{n} đã chọn',
+    compareBtn: 'So Sánh',
+    vsLabel: 'VS',
+    noSelection: 'Chọn đúng 2 bản ghi từ danh sách.',
+    close: 'Đóng So Sánh',
+    betterResult: 'Kết Quả Tốt Hơn',
+    metric: 'Chỉ Số',
+    result1: 'Kết Quả A',
+    result2: 'Kết Quả B',
+    maxTwo: 'Tối đa 2. Bỏ một bản ghi trước.',
+    label: 'Nhãn',
+    confidence: 'Độ Tin Cậy',
+    grade: 'Loại',
+    analysis: 'Phân Tích Nhanh',
+    sameLabel: 'Cùng phân loại là',
+    diffLabel: 'Nhãn khác nhau',
+    confGap: 'Chênh lệch tin cậy',
+    selectRecords: 'Chọn thêm {n} bản ghi để so sánh',
+  },
+
+  // ─── #5 Phát Hiện Viền Trái Cây ───────────────────────
+  boundary: {
+    title: 'Phát Hiện Viền Trái Cây',
+    showOverlay: 'Hiện Viền',
+    hideOverlay: 'Ẩn Viền',
+    analyzing: 'Đang phát hiện viền…',
+  },
 };
 
 export default vi;
