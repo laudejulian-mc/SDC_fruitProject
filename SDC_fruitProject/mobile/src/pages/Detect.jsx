@@ -35,6 +35,10 @@ export default function Detect() {
   const [enhancedPreview, setEnhancedPreview] = useState(null);
   const [enhancedFile, setEnhancedFile] = useState(null);
 
+  // ─── Quick Scan Feature (NEW) ───
+  const [lastUsedFruit, setLastUsedFruit] = useState('apple');
+  const [showQuickScanFAB, setShowQuickScanFAB] = useState(false);
+
   useEffect(() => {
     setCurrentFact(getRandomFacts(fruitType, 3));
   }, [fruitType]);
@@ -147,6 +151,21 @@ export default function Detect() {
       setLoading(false);
     }
   };
+
+  // ─── Quick Scan handler (NEW) ───
+  const handleQuickScan = async () => {
+    setLastUsedFruit(fruitType);
+    if (!files.length) {
+      setToast({ type: 'warning', message: t('detect.selectImage') });
+      return;
+    }
+    setShowQuickScanFAB(false);
+    submit();
+  };
+
+  useEffect(() => {
+    setShowQuickScanFAB(files.length > 0);
+  }, [files]);
 
   const displayFruit = fruitName(fruitType);
 
@@ -371,6 +390,27 @@ export default function Detect() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* ─── Quick Scan FAB (NEW) ─── */}
+      {showQuickScanFAB && (
+        <button
+          onClick={handleQuickScan}
+          disabled={loading}
+          className={clsx(
+            'fixed bottom-8 right-8 z-40',
+            'w-16 h-16 rounded-full shadow-2xl flex items-center justify-center',
+            'bg-gradient-to-br from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600',
+            'text-white transition-all duration-300 active:scale-95',
+            'hover:scale-110 hover:shadow-primary-500/40',
+            loading && 'opacity-70 cursor-not-allowed',
+            !loading && 'animate-bounce'
+          )}
+          title={t('detect.quickScan')}
+          aria-label={t('detect.quickScan')}
+        >
+          {loading ? <Loader2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
+        </button>
       )}
     </div>
   );

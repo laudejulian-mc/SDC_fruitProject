@@ -200,6 +200,8 @@ const en = {
     batchComplete: '🩺 Batch diagnosis complete: {n} {fruit}s examined.',
     diagnosisFailed: 'Diagnosis failed. Please try again.',
     selectValid: 'Please select valid image files.',
+    selectImage: 'Please select an image first.',
+    quickScan: 'Quick Scan',
     examsThisSession: 'Exams this session',
     mode: 'mode',
     drTips: "Dr. FruitMD's Tips",

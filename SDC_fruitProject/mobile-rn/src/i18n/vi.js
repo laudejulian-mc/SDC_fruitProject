@@ -191,6 +191,8 @@ const vi = {
     batchComplete: '🩺 Chẩn đoán hàng loạt: {n} {fruit} đã được khám.',
     diagnosisFailed: 'Chẩn đoán thất bại. Vui lòng thử lại.',
     selectValid: 'Vui lòng chọn tệp ảnh hợp lệ.',
+    selectImage: 'Vui lòng chọn một ảnh trước.',
+    quickScan: 'Quét Nhanh',
     examsThisSession: 'Lần khám phiên này',
     mode: 'chế độ',
     drTips: 'Lời Khuyên Của BS FruitMD',

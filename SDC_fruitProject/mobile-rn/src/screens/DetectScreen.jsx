@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image,
-  StyleSheet, ActivityIndicator, Alert, Modal,
+  StyleSheet, ActivityIndicator, Alert, Modal, Animated,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,6 +49,19 @@ export default function DetectScreen() {
   const [enhancedUri, setEnhancedUri] = useState(null);
   const [enhancing, setEnhancing] = useState(false);
 
+  // ─── Quick Scan Feature (NEW) ───────────────────────────
+  const [showQuickScanFAB, setShowQuickScanFAB] = useState(false);
+  const fabScaleAnim = useRef(new Animated.Value(0)).current;
+
+  // Animate FAB appearance
+  useEffect(() => {
+    Animated.timing(fabScaleAnim, {
+      toValue: showQuickScanFAB ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [showQuickScanFAB]);
+
   useEffect(() => {
     setCurrentFact(getRandomFacts(fruitType, 3));
   }, [fruitType]);
@@ -61,6 +74,11 @@ export default function DetectScreen() {
       setQualityInfo(null);
       setEnhancedUri(null);
     }
+  }, [images]);
+
+  // ── Show FAB when images are selected ─────────────────────
+  useEffect(() => {
+    setShowQuickScanFAB(images.length > 0);
   }, [images]);
 
   const runQualityCheck = async (asset) => {
@@ -245,6 +263,16 @@ export default function DetectScreen() {
       setLoading(false);
       setBatchProgress('');
     }
+  };
+
+  // ─── Quick Scan handler (NEW) ───────────────────────────
+  const handleQuickScan = async () => {
+    if (!images.length) {
+      setToast({ type: 'warning', message: t('detect.selectImage') });
+      return;
+    }
+    setShowQuickScanFAB(false);
+    submit();
   };
 
   // ── #11 Session summary helpers ─────────────────────────
@@ -584,6 +612,34 @@ export default function DetectScreen() {
 
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* ─── Quick Scan FAB (NEW) ─── */}
+      {showQuickScanFAB && (
+        <Animated.View
+          style={[
+            styles.quickScanFAB,
+            { transform: [{ scale: fabScaleAnim }] },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={handleQuickScan}
+            disabled={loading}
+            style={[
+              styles.quickScanBtn,
+              { backgroundColor: c.primary, opacity: loading ? 0.7 : 1 },
+            ]}
+            accessibilityLabel={t('detect.quickScan')}
+            accessibilityRole="button"
+            accessible={true}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name="sparkles" size={24} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -796,4 +852,20 @@ const styles = StyleSheet.create({
   miniStats: { flexDirection: 'row', gap: Spacing.sm, marginTop: 4 },
   miniStat: { fontSize: FontSize.xs, fontWeight: '600' },
   viewSummaryLink: { fontSize: FontSize.xs, marginTop: 4, fontWeight: '600' },
+
+  // ── Quick Scan FAB (NEW) ────────────────────────────────
+  quickScanFAB: {
+    position: 'absolute',
+    bottom: Spacing.lg,
+    right: Spacing.lg,
+    zIndex: 50,
+  },
+  quickScanBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.lg,
+  },
 });

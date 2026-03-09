@@ -191,6 +191,8 @@ const fil = {
     batchComplete: '🩺 Maramihang diagnosis tapos: {n} {fruit} nasuri na.',
     diagnosisFailed: 'Nabigo ang diagnosis. Subukan muli.',
     selectValid: 'Pumili ng wastong image files.',
+    selectImage: 'Pumili ng larawan muna.',
+    quickScan: 'Mabilis na Scan',
     examsThisSession: 'Pagsusuri sa session na ito',
     mode: 'mode',
     drTips: 'Mga Payo ni Dr. FruitMD',

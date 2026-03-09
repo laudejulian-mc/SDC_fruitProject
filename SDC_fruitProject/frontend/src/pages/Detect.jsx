@@ -40,6 +40,10 @@ export default function Detect() {
   const [enhancedFile, setEnhancedFile] = useState(null);
   const [showEnhance, setShowEnhance] = useState(false);
 
+  // ─── Quick Scan Feature (NEW) ───
+  const [lastUsedFruit, setLastUsedFruit] = useState('apple');
+  const [showQuickScanFAB, setShowQuickScanFAB] = useState(false);
+
   // Rotate fun facts every 8 seconds or when fruit changes
   useEffect(() => {
     setCurrentFact(getRandomFacts(fruitType, 3));
@@ -179,6 +183,22 @@ export default function Detect() {
       setLoading(false);
     }
   };
+
+  // ─── Quick Scan handler (NEW) ───
+  const handleQuickScan = async () => {
+    setLastUsedFruit(fruitType); // Store for next quick scan
+    if (!files.length) {
+      setToast({ type: 'warning', message: t('detect.selectImage') });
+      return;
+    }
+    setShowQuickScanFAB(false); // Hide FAB after quick scan
+    submit(); // Trigger diagnosis with current fruit type
+  };
+
+  // Show FAB when files are uploaded
+  useEffect(() => {
+    setShowQuickScanFAB(files.length > 0);
+  }, [files]);
 
   const info = FRUIT_HEALTH_INFO[fruitType] || FRUIT_HEALTH_INFO.apple;
   const displayFruit = fruitName(fruitType);
@@ -626,6 +646,27 @@ export default function Detect() {
             <img src={zoomImage} alt="Zoomed preview" className="max-h-[85vh] rounded-2xl object-contain shadow-2xl" />
           </div>
         </div>
+      )}
+
+      {/* ─── Quick Scan FAB (NEW) ─── */}
+      {showQuickScanFAB && (
+        <button
+          onClick={handleQuickScan}
+          disabled={loading}
+          className={clsx(
+            'fixed bottom-8 right-8 z-40',
+            'w-16 h-16 rounded-full shadow-2xl flex items-center justify-center',
+            'bg-gradient-to-br from-primary-500 to-accent-500 hover:from-primary-600 hover:to-accent-600',
+            'text-white transition-all duration-300 active:scale-95',
+            'hover:scale-110 hover:shadow-primary-500/40',
+            loading && 'opacity-70 cursor-not-allowed',
+            !loading && 'animate-bounce'
+          )}
+          title={t('detect.quickScan')}
+          aria-label={t('detect.quickScan')}
+        >
+          {loading ? <Loader2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
+        </button>
       )}
     </div>
   );
