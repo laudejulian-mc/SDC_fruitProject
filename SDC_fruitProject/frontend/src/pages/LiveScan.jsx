@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { detectSingle } from '../api';
 import ResultCard from '../components/ResultCard';
 import Toast from '../components/Toast';
-import { Video, VideoOff, Camera, Loader2, Settings2, Radio, CircleDot, Clock, Activity, Trash2, Eye, Stethoscope, Download, Volume2, VolumeX, SlidersHorizontal, BarChart3, Zap, Shield, Scan, Timer, Target } from 'lucide-react';
+import { Video, VideoOff, Camera, Loader2, Settings2, Radio, CircleDot, Clock, Activity, Trash2, Eye, Stethoscope, Download, Volume2, VolumeX, SlidersHorizontal, BarChart3, Zap, Shield, Scan, Timer, Target, Sun, SunDim, Moon } from 'lucide-react';
 import clsx from 'clsx';
 import { FRUIT_OPTIONS, fruitEmoji, LABEL_TEXT_COLORS, LABEL_BG_COLORS } from '../utils/fruitConstants';
 
@@ -10,6 +10,7 @@ export default function LiveScan() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const intervalRef = useRef(null);
+  const lightingRef = useRef(null);
 
   const [streaming, setStreaming] = useState(false);
   const [fruitType, setFruitType] = useState('apple');
@@ -25,6 +26,11 @@ export default function LiveScan() {
   const [confidenceThreshold, setConfidenceThreshold] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
 
+  // #13 Lighting Guide state
+  const [showLightingGuide, setShowLightingGuide] = useState(true);
+  const [lightingScore, setLightingScore] = useState(null); // 0-100
+  const [lightingUniformity, setLightingUniformity] = useState(null);
+
   const startCam = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 640, height: 480 } });
@@ -36,6 +42,46 @@ export default function LiveScan() {
       setToast({ type: 'error', message: 'Camera access denied.' });
     }
   };
+
+  // #13 Lighting analyzer — reads a small canvas sample every ~500ms
+  const analyzeLighting = useCallback(() => {
+    if (!videoRef.current || !videoRef.current.srcObject) return;
+    const video = videoRef.current;
+    if (video.videoWidth === 0) return;
+    const c = document.createElement('canvas');
+    const sz = 64; // sample at low res for speed
+    c.width = sz;
+    c.height = sz;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(video, 0, 0, sz, sz);
+    const { data } = ctx.getImageData(0, 0, sz, sz);
+    let sum = 0;
+    const vals = [];
+    for (let i = 0; i < data.length; i += 4) {
+      const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      sum += lum;
+      vals.push(lum);
+    }
+    const avg = sum / vals.length;
+    // Standard deviation for uniformity
+    const variance = vals.reduce((s, v) => s + (v - avg) ** 2, 0) / vals.length;
+    const stdDev = Math.sqrt(variance);
+    const uniformity = Math.max(0, Math.min(100, 100 - stdDev));
+    // Score: penalize too dark (<80) and too bright (>200), reward mid-range
+    let score;
+    if (avg < 40) score = Math.round(avg / 40 * 30);
+    else if (avg < 80) score = Math.round(30 + (avg - 40) / 40 * 30);
+    else if (avg <= 200) score = Math.round(60 + (1 - Math.abs(avg - 140) / 60) * 40);
+    else score = Math.round(Math.max(20, 80 - (avg - 200) / 55 * 60));
+    setLightingScore(Math.min(100, Math.max(0, score)));
+    setLightingUniformity(Math.round(uniformity));
+  }, []);
+
+  useEffect(() => {
+    if (!streaming || !showLightingGuide) { lightingRef.current && clearInterval(lightingRef.current); return; }
+    lightingRef.current = window.setInterval(analyzeLighting, 600);
+    return () => clearInterval(lightingRef.current);
+  }, [streaming, showLightingGuide, analyzeLighting]);
 
   const stopCam = useCallback(() => {
     if (videoRef.current?.srcObject) {
@@ -264,6 +310,13 @@ export default function LiveScan() {
                   >
                     <SlidersHorizontal size={16} />
                   </button>
+                  <button
+                    onClick={() => setShowLightingGuide(!showLightingGuide)}
+                    className={clsx('btn-secondary', showLightingGuide && '!bg-amber-50 dark:!bg-amber-900/20 !border-amber-300')}
+                    title="Toggle Lighting Guide"
+                  >
+                    <Sun size={16} />
+                  </button>
                   <Settings2 size={14} className="text-gray-400" />
                   <label className="text-xs text-gray-500">Interval</label>
                   <select
@@ -358,6 +411,32 @@ export default function LiveScan() {
                 </span>
               )}
             </div>
+
+            {/* #13 Lighting Guide Overlay */}
+            {streaming && showLightingGuide && lightingScore !== null && (
+              <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
+                <div className={clsx(
+                  'flex items-center gap-1.5 text-xs font-bold backdrop-blur-md px-3 py-1.5 rounded-full',
+                  lightingScore >= 70 ? 'bg-green-500/70 text-white' :
+                  lightingScore >= 40 ? 'bg-amber-500/70 text-white' :
+                  'bg-red-500/70 text-white'
+                )}>
+                  {lightingScore >= 70 ? <Sun size={12} /> : lightingScore >= 40 ? <SunDim size={12} /> : <Moon size={12} />}
+                  {lightingScore >= 70 ? 'Good Light' : lightingScore >= 40 ? 'Low Light' : 'Too Dark'}
+                  <span className="ml-1 opacity-80">{lightingScore}%</span>
+                </div>
+                {lightingUniformity !== null && lightingUniformity < 60 && (
+                  <span className="text-[10px] bg-yellow-500/60 backdrop-blur-md text-white px-2 py-0.5 rounded-full">
+                    ⚠ Uneven lighting
+                  </span>
+                )}
+                {lightingScore < 40 && (
+                  <span className="text-[10px] bg-black/50 backdrop-blur-md text-white px-2 py-0.5 rounded-full">
+                    💡 Move to brighter area
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Overlay result */}
             {detecting && result && (

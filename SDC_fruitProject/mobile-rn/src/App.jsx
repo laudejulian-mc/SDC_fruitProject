@@ -72,20 +72,12 @@ function MainTabs() {
         headerLeft: () => (
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingLeft: 12, gap: 10 }}>
             {isAuthenticated && (
-              <>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate('Settings')}
-                  style={{ padding: 6, borderRadius: 10, backgroundColor: dark ? c.primaryLight : 'rgba(22,163,74,0.08)' }}
-                >
-                  <Ionicons name="settings-outline" size={20} color={c.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleLogout}
-                  style={{ padding: 6, borderRadius: 10, backgroundColor: c.redLight }}
-                >
-                  <Ionicons name="log-out-outline" size={20} color={c.red} />
-                </TouchableOpacity>
-              </>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Settings')}
+                style={{ padding: 6, borderRadius: 10, backgroundColor: dark ? c.primaryLight : 'rgba(22,163,74,0.08)' }}
+              >
+                <Ionicons name="settings-outline" size={20} color={c.primary} />
+              </TouchableOpacity>
             )}
             {isGuest && (
               <TouchableOpacity

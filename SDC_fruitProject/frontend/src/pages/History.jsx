@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LabelBadge, GradeBadge } from '../components/Badges';
 import { TableSkeleton } from '../components/Skeleton';
 import Toast from '../components/Toast';
-import { Trash2, ChevronLeft, ChevronRight, Filter, RefreshCw, Database, ArrowUpDown, Search, X, Download, Clock, Hash, Stethoscope, ChevronDown, FileDown, CheckSquare, Square } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronRight, Filter, RefreshCw, Database, ArrowUpDown, Search, X, Download, Clock, Hash, Stethoscope, ChevronDown, FileDown, CheckSquare, Square, GitCompare, XCircle } from 'lucide-react';
 import { exportCSV } from '../api';
 import { FRUIT_OPTIONS, fruitEmoji, UNIQUE_LABELS } from '../utils/fruitConstants';
 
@@ -22,6 +22,10 @@ export default function History() {
   const [searchId, setSearchId] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [expandedId, setExpandedId] = useState(null);
+
+  // #19 Compare Mode
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareItems, setCompareItems] = useState([]); // max 2 records
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
@@ -108,6 +112,26 @@ export default function History() {
     if (filters.fruit_type) params.fruit_type = filters.fruit_type;
     exportCSV(params);
     setToast({ type: 'success', message: 'CSV export started!' });
+  };
+
+  // #19 Compare helpers
+  const toggleCompareItem = (rec) => {
+    setCompareItems((prev) => {
+      const exists = prev.find((r) => r.id === rec.id);
+      if (exists) return prev.filter((r) => r.id !== rec.id);
+      if (prev.length >= 2) {
+        setToast({ type: 'warning', message: 'Compare max 2 records. Remove one first.' });
+        return prev;
+      }
+      return [...prev, rec];
+    });
+  };
+
+  const isInCompare = (id) => compareItems.some((r) => r.id === id);
+
+  const exitCompareMode = () => {
+    setCompareMode(false);
+    setCompareItems([]);
   };
 
   const filteredRecords = searchId
@@ -202,6 +226,12 @@ export default function History() {
           )}
           <button onClick={handleExport} className="btn-secondary text-xs">
             <FileDown size={14} /> Export CSV
+          </button>
+          <button
+            onClick={() => compareMode ? exitCompareMode() : setCompareMode(true)}
+            className={`btn-secondary text-xs ${compareMode ? '!bg-indigo-50 dark:!bg-indigo-900/20 !border-indigo-300 dark:!border-indigo-700 !text-indigo-600' : ''}`}
+          >
+            <GitCompare size={14} /> {compareMode ? `Compare (${compareItems.length}/2)` : 'Compare'}
           </button>
           <button onClick={fetch} className="btn-secondary text-xs">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Refresh
@@ -357,12 +387,23 @@ export default function History() {
                     </td>
                     {canDelete && (
                       <td className="py-3" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => handleDelete(r.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <Trash2 size={15} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          {compareMode && (
+                            <button
+                              onClick={() => toggleCompareItem(r)}
+                              className={`p-1.5 rounded-lg transition-all ${isInCompare(r.id) ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-indigo-500'}`}
+                              title="Add to compare"
+                            >
+                              <GitCompare size={15} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDelete(r.id)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -420,6 +461,56 @@ export default function History() {
           </table>
         )}
       </div>
+
+      {/* #19 Compare Panel */}
+      {compareMode && compareItems.length === 2 && (
+        <div className="card space-y-4 animate-slide-up border-2 border-indigo-200 dark:border-indigo-800/40">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+              <GitCompare size={16} /> AI Result Comparison
+            </h3>
+            <button onClick={exitCompareMode} className="text-xs text-gray-400 hover:text-red-500 flex items-center gap-1">
+              <XCircle size={14} /> Close
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            {compareItems.map((item, idx) => (
+              <div key={item.id} className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-400">#{item.id}</span>
+                  <span className="text-sm">{fruitEmoji(item.fruit_type)}</span>
+                  <span className="text-sm font-semibold capitalize">{item.fruit_type}</span>
+                  <button onClick={() => toggleCompareItem(item)} className="ml-auto text-gray-400 hover:text-red-400"><X size={14} /></button>
+                </div>
+                {item.image_url && (
+                  <img src={item.image_url} alt="" className="w-full h-40 object-cover rounded-xl ring-1 ring-gray-200 dark:ring-gray-700" />
+                )}
+                <div className="space-y-2 text-xs">
+                  <div className="flex items-center justify-between"><span className="text-gray-400">Label</span> <LabelBadge label={item.predicted_label} /></div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">Confidence</span>
+                    <span className="font-bold text-primary-600">{(item.confidence * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="flex items-center justify-between"><span className="text-gray-400">Grade</span> <GradeBadge grade={item.grade} /></div>
+                  <div className="flex items-center justify-between"><span className="text-gray-400">Method</span> <span className="capitalize">{item.detection_method}</span></div>
+                  <div className="flex items-center justify-between"><span className="text-gray-400">Date</span> <span>{new Date(item.timestamp).toLocaleDateString()}</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Comparison summary */}
+          <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-xl p-3 space-y-2 text-xs">
+            <p className="font-bold text-indigo-700 dark:text-indigo-400">Quick Analysis</p>
+            <p className="text-indigo-600/80 dark:text-indigo-400/70">
+              {compareItems[0].predicted_label === compareItems[1].predicted_label
+                ? `Both samples classified as ${compareItems[0].predicted_label}.`
+                : `Different labels: ${compareItems[0].predicted_label} vs ${compareItems[1].predicted_label}.`}
+              {' '}Confidence gap: {Math.abs((compareItems[0].confidence - compareItems[1].confidence) * 100).toFixed(1)}pp.
+              {compareItems[0].grade !== compareItems[1].grade && ` Grade difference: ${compareItems[0].grade} vs ${compareItems[1].grade}.`}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (

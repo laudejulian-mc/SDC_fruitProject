@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image,
-  StyleSheet, ActivityIndicator, Alert, Platform,
+  StyleSheet, ActivityIndicator, Alert, Platform, Animated,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +32,11 @@ export default function LiveScanScreen() {
   const [detectionLog, setDetectionLog] = useState([]);
   const [scanCount, setScanCount] = useState(0);
 
+  // ─── #13 Lighting Guide ─────────────────────────────────
+  const [lightingLevel, setLightingLevel] = useState('good'); // 'good' | 'low' | 'tooDark'
+  const [showLightingGuide, setShowLightingGuide] = useState(true);
+  const lightingPulse = useRef(new Animated.Value(1)).current;
+
   const startCam = async () => {
     if (!permission?.granted) {
       const res = await requestPermission();
@@ -57,6 +62,20 @@ export default function LiveScanScreen() {
     try {
       setLoading(true);
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.7, base64: false });
+
+      // ── #13 Estimate lighting from file size heuristic ──
+      try {
+        const FileSystem = await import('expo-file-system');
+        const info = await FileSystem.getInfoAsync(photo.uri, { size: true });
+        const sizeKB = (info.size || 0) / 1024;
+        // Dark images compress smaller; well-lit images have more detail
+        if (sizeKB < 30) setLightingLevel('tooDark');
+        else if (sizeKB < 80) setLightingLevel('low');
+        else setLightingLevel('good');
+      } catch {
+        // fallback — can't check
+      }
+
       const fd = new FormData();
       fd.append('image', {
         uri: photo.uri,
@@ -97,6 +116,39 @@ export default function LiveScanScreen() {
   };
 
   useEffect(() => () => stopCam(), [stopCam]);
+
+  // ── #13 Pulse animation for poor lighting ───────────────
+  useEffect(() => {
+    if (lightingLevel !== 'good' && streaming) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(lightingPulse, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+          Animated.timing(lightingPulse, { toValue: 1, duration: 800, useNativeDriver: true }),
+        ]),
+      );
+      pulse.start();
+      return () => pulse.stop();
+    } else {
+      lightingPulse.setValue(1);
+    }
+  }, [lightingLevel, streaming]);
+
+  // ── #13 Lighting guide helpers ──────────────────────────
+  const getLightingColor = () => {
+    if (lightingLevel === 'good') return c.green;
+    if (lightingLevel === 'low') return c.amber;
+    return c.red;
+  };
+  const getLightingIcon = () => {
+    if (lightingLevel === 'good') return 'sunny';
+    if (lightingLevel === 'low') return 'partly-sunny';
+    return 'moon';
+  };
+  const getLightingText = () => {
+    if (lightingLevel === 'good') return t('lighting.good');
+    if (lightingLevel === 'low') return t('lighting.low');
+    return t('lighting.tooDark');
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
@@ -147,7 +199,37 @@ export default function LiveScanScreen() {
                     {detecting ? t('live.liveScanning') : t('live.cameraActive')}
                   </Text>
                 </View>
+
+                {/* ── #13 Lighting indicator badge ──────── */}
+                {showLightingGuide && (
+                  <Animated.View style={[
+                    styles.lightingBadge,
+                    { backgroundColor: getLightingColor() + 'CC', opacity: lightingLevel === 'good' ? 1 : lightingPulse },
+                  ]}>
+                    <Ionicons name={getLightingIcon()} size={12} color="#fff" />
+                    <Text style={styles.lightingBadgeText}>{getLightingText()}</Text>
+                  </Animated.View>
+                )}
               </View>
+
+              {/* ── #13 Lighting guide tips overlay ──────── */}
+              {showLightingGuide && lightingLevel !== 'good' && (
+                <View style={styles.lightingTipsOverlay}>
+                  <View style={[styles.lightingTipsBox, { backgroundColor: getLightingColor() + '20', borderColor: getLightingColor() }]}>
+                    <Text style={[styles.lightingTipsText, { color: '#fff' }]}>
+                      {lightingLevel === 'tooDark' ? t('lighting.moveBrighter') : t('lighting.tip')}
+                    </Text>
+                    <View style={styles.lightingTipsRow}>
+                      <Ionicons name="scan-outline" size={14} color="rgba(255,255,255,0.8)" />
+                      <Text style={styles.lightingTipItem}>{t('lighting.centerFruit')}</Text>
+                    </View>
+                    <View style={styles.lightingTipsRow}>
+                      <Ionicons name="hand-left-outline" size={14} color="rgba(255,255,255,0.8)" />
+                      <Text style={styles.lightingTipItem}>{t('lighting.holdSteady')}</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
               {loading && (
                 <View style={styles.loadingOverlay}>
                   <ActivityIndicator color="#fff" size="large" />
@@ -197,6 +279,13 @@ export default function LiveScanScreen() {
               </TouchableOpacity>
               <TouchableOpacity onPress={manualCapture} style={[styles.controlBtn, { backgroundColor: c.inputBg }]}>
                 <Ionicons name="camera" size={16} color={c.text} />
+              </TouchableOpacity>
+              {/* ── #13 Lighting guide toggle ────────────── */}
+              <TouchableOpacity
+                onPress={() => setShowLightingGuide((v) => !v)}
+                style={[styles.controlBtn, { backgroundColor: showLightingGuide ? c.amber : c.inputBg }]}
+              >
+                <Ionicons name="sunny" size={16} color={showLightingGuide ? '#fff' : c.textMuted} />
               </TouchableOpacity>
             </>
           )}
@@ -297,4 +386,48 @@ const styles = StyleSheet.create({
   logLabel: { flex: 1, fontSize: FontSize.sm, fontWeight: '600' },
   logConf: { fontSize: FontSize.sm, fontWeight: '700', fontVariant: ['tabular-nums'] },
   logTime: { fontSize: FontSize.xs },
+
+  // ── #13 Lighting guide ─────────────────────────────────
+  lightingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  lightingBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  lightingTipsOverlay: {
+    position: 'absolute',
+    bottom: 60,
+    left: Spacing.md,
+    right: Spacing.md,
+    alignItems: 'center',
+  },
+  lightingTipsBox: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.sm,
+    gap: 6,
+    width: '100%',
+  },
+  lightingTipsText: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  lightingTipsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  lightingTipItem: {
+    fontSize: FontSize.xs,
+    color: 'rgba(255,255,255,0.8)',
+  },
 });

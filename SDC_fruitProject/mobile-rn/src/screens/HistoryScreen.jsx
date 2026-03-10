@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, Image,
-  StyleSheet, ActivityIndicator, RefreshControl, Alert, TextInput,
+  StyleSheet, ActivityIndicator, RefreshControl, Alert, TextInput, Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getRecords, deleteRecord } from '../api';
@@ -31,6 +31,11 @@ export default function HistoryScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [expanded, setExpanded] = useState(null);
+
+  // ─── #19 Compare Mode ──────────────────────────────────
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareItems, setCompareItems] = useState([]);
+  const [compareVisible, setCompareVisible] = useState(false);
 
   const loadRecords = useCallback(async (pg = 1, append = false) => {
     try {
@@ -71,6 +76,23 @@ export default function HistoryScreen() {
     ]);
   };
 
+  // ── #19 Compare helpers ─────────────────────────────────
+  const toggleCompareItem = (item) => {
+    setCompareItems((prev) => {
+      const exists = prev.find((i) => i.id === item.id);
+      if (exists) return prev.filter((i) => i.id !== item.id);
+      if (prev.length >= 2) {
+        Alert.alert(t('compare.maxTwo'));
+        return prev;
+      }
+      return [...prev, item];
+    });
+  };
+
+  const openComparison = () => {
+    if (compareItems.length === 2) setCompareVisible(true);
+  };
+
   const filtered = records.filter((r) => {
     if (filter !== 'all' && r.predicted_label !== filter) return false;
     if (search) {
@@ -85,14 +107,29 @@ export default function HistoryScreen() {
 
   const renderItem = ({ item }) => {
     const isOpen = expanded === item.id;
+    const isSelected = compareItems.find((i) => i.id === item.id);
     const imageUri = item.image?.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`;
     return (
       <TouchableOpacity
-        style={[styles.card, { backgroundColor: c.card, borderColor: c.cardBorder, ...c.cardShadow }]}
-        onPress={() => setExpanded(isOpen ? null : item.id)}
+        style={[
+          styles.card,
+          {
+            backgroundColor: c.card,
+            borderColor: isSelected ? c.primary : c.cardBorder,
+            borderWidth: isSelected ? 2 : 1,
+            ...c.cardShadow,
+          },
+        ]}
+        onPress={() => compareMode ? toggleCompareItem(item) : setExpanded(isOpen ? null : item.id)}
         activeOpacity={0.8}
       >
         <View style={styles.cardRow}>
+          {/* ── #19 Compare checkbox ──────────────────── */}
+          {compareMode && (
+            <View style={[styles.compareCheck, { backgroundColor: isSelected ? c.primary : c.inputBg, borderColor: isSelected ? c.primary : c.cardBorder }]}>
+              {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+            </View>
+          )}
           {item.image && (
             <Image source={{ uri: imageUri }} style={styles.thumb} />
           )}
@@ -148,6 +185,86 @@ export default function HistoryScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
+      {/* ── #19 Comparison Modal ──────────────────────── */}
+      <Modal visible={compareVisible} transparent animationType="slide">
+        <View style={styles.compareOverlay}>
+          <View style={[styles.compareModal, { backgroundColor: c.card, ...c.cardShadowElevated }]}>
+            <View style={styles.compareHeader}>
+              <Text style={[styles.compareTitle, { color: c.text }]}>⚖️ {t('compare.title')}</Text>
+              <TouchableOpacity onPress={() => setCompareVisible(false)}>
+                <Ionicons name="close" size={22} color={c.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {compareItems.length === 2 && (
+              <>
+                {/* Side-by-side cards */}
+                <View style={styles.compareCards}>
+                  {compareItems.map((item, idx) => {
+                    const imgUri = item.image?.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`;
+                    return (
+                      <View key={item.id} style={[styles.compareCard, { backgroundColor: c.backgroundSecondary, borderColor: c.cardBorder }]}>
+                        <Text style={[styles.compareCardHeader, { color: c.textMuted }]}>
+                          {idx === 0 ? t('compare.result1') : t('compare.result2')}
+                        </Text>
+                        {item.image && <Image source={{ uri: imgUri }} style={styles.compareThumb} resizeMode="cover" />}
+                        <Text style={{ fontSize: 20, textAlign: 'center' }}>{fruitEmoji(item.fruit_type)}</Text>
+                        <Text style={[styles.compareItemFruit, { color: c.text }]}>{fruitName(item.fruit_type)}</Text>
+                        <LabelBadge label={item.predicted_label} dark={dark} />
+                        <Text style={[styles.compareConf, { color: c.primary }]}>
+                          {(item.confidence * 100).toFixed(1)}%
+                        </Text>
+                        {item.grade && <GradeBadge grade={item.grade} dark={dark} />}
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* VS divider */}
+                <View style={styles.vsRow}>
+                  <View style={[styles.vsDivider, { backgroundColor: c.cardBorder }]} />
+                  <View style={[styles.vsBadge, { backgroundColor: c.primary }]}>
+                    <Text style={styles.vsText}>{t('compare.vsLabel')}</Text>
+                  </View>
+                  <View style={[styles.vsDivider, { backgroundColor: c.cardBorder }]} />
+                </View>
+
+                {/* Quick analysis */}
+                <View style={[styles.analysisBox, { backgroundColor: c.infoBg, borderColor: c.infoBorder }]}>
+                  <Text style={[styles.analysisTitle, { color: c.infoText }]}>🔍 {t('compare.analysis')}</Text>
+                  {compareItems[0].predicted_label === compareItems[1].predicted_label ? (
+                    <Text style={[styles.analysisText, { color: c.textSecondary }]}>
+                      ✅ {t('compare.sameLabel')} {labelName(compareItems[0].predicted_label)}
+                    </Text>
+                  ) : (
+                    <Text style={[styles.analysisText, { color: c.textSecondary }]}>
+                      ⚠️ {t('compare.diffLabel')}: {labelName(compareItems[0].predicted_label)} vs {labelName(compareItems[1].predicted_label)}
+                    </Text>
+                  )}
+                  <Text style={[styles.analysisText, { color: c.textSecondary }]}>
+                    📊 {t('compare.confGap')}: {Math.abs((compareItems[0].confidence - compareItems[1].confidence) * 100).toFixed(1)}%
+                  </Text>
+                  {compareItems[0].confidence !== compareItems[1].confidence && (
+                    <Text style={[styles.analysisBetter, { color: c.green }]}>
+                      🏆 {t('compare.betterResult')}: {
+                        compareItems[0].confidence > compareItems[1].confidence ? t('compare.result1') : t('compare.result2')
+                      }
+                    </Text>
+                  )}
+                </View>
+              </>
+            )}
+
+            <TouchableOpacity
+              onPress={() => setCompareVisible(false)}
+              style={[styles.compareCloseBtn, { backgroundColor: c.primary }]}
+            >
+              <Text style={styles.compareCloseBtnText}>{t('compare.close')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Search */}
       <View style={[styles.searchBox, { backgroundColor: c.card, borderColor: c.cardBorder, ...c.cardShadow }]}>
         <Ionicons name="search" size={16} color={c.textMuted} />
@@ -166,14 +283,44 @@ export default function HistoryScreen() {
       </View>
 
       {/* Filters */}
-      <ScrollableFilters
-        options={FILTER_OPTIONS}
-        active={filter}
-        setActive={setFilter}
-        dark={dark}
-        c={c}
-        t={t}
-      />
+      <View style={styles.filterAndCompare}>
+        <ScrollableFilters
+          options={FILTER_OPTIONS}
+          active={filter}
+          setActive={setFilter}
+          dark={dark}
+          c={c}
+          t={t}
+        />
+
+        {/* ── #19 Compare toggle ───────────────────────── */}
+        <TouchableOpacity
+          onPress={() => { setCompareMode((v) => !v); setCompareItems([]); }}
+          style={[styles.compareToggle, { backgroundColor: compareMode ? c.primary : c.inputBg }]}
+        >
+          <Ionicons name="git-compare-outline" size={14} color={compareMode ? '#fff' : c.textMuted} />
+          <Text style={[styles.compareToggleText, { color: compareMode ? '#fff' : c.textSecondary }]}>
+            {compareMode ? 'Exit' : t('compare.compareBtn')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── #19 Compare action bar ─────────────────────── */}
+      {compareMode && (
+        <View style={[styles.compareBar, { backgroundColor: c.primaryLight }]}>
+          <Text style={[styles.compareBarText, { color: c.primary }]}>
+            {compareItems.length === 2
+              ? t('compare.selected', { n: 2 })
+              : t('compare.selectRecords', { n: 2 - compareItems.length })}
+          </Text>
+          {compareItems.length === 2 && (
+            <TouchableOpacity onPress={openComparison} style={[styles.compareBarBtn, { backgroundColor: c.primary }]}>
+              <Ionicons name="git-compare" size={14} color="#fff" />
+              <Text style={styles.compareBarBtnText}>{t('compare.compareBtn')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Count */}
       <Text style={[styles.count, { color: c.textMuted }]}>
@@ -241,7 +388,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: FontSize.sm },
   filterRow: {
-    flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, gap: Spacing.sm,
+    flexDirection: 'row', flex: 1, paddingLeft: Spacing.lg, paddingVertical: Spacing.sm, gap: Spacing.sm,
   },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -266,4 +413,111 @@ const styles = StyleSheet.create({
   deleteText: { fontSize: FontSize.xs, fontWeight: '600' },
   empty: { alignItems: 'center', gap: Spacing.md, paddingVertical: 60 },
   emptyText: { fontSize: FontSize.md },
+
+  // ── #19 Compare mode ───────────────────────────────────
+  filterAndCompare: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: Spacing.lg,
+  },
+  compareToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  compareToggleText: { fontSize: FontSize.xs, fontWeight: '600' },
+  compareCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compareBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.sm,
+  },
+  compareBarText: { fontSize: FontSize.xs, fontWeight: '600' },
+  compareBarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.md,
+  },
+  compareBarBtnText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '600' },
+
+  // ── #19 Comparison modal ──────────────────────────────
+  compareOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  compareModal: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xxl,
+    gap: Spacing.md,
+    maxHeight: '90%',
+  },
+  compareHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  compareTitle: { fontSize: FontSize.xl, fontWeight: '700' },
+  compareCards: { flexDirection: 'row', gap: Spacing.sm },
+  compareCard: {
+    flex: 1,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.sm,
+    alignItems: 'center',
+    gap: 4,
+  },
+  compareCardHeader: { fontSize: FontSize.xs, fontWeight: '700' },
+  compareThumb: { width: 60, height: 60, borderRadius: BorderRadius.sm },
+  compareItemFruit: { fontSize: FontSize.sm, fontWeight: '600' },
+  compareConf: { fontSize: FontSize.lg, fontWeight: '700' },
+  vsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  vsDivider: { flex: 1, height: 1 },
+  vsBadge: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  vsText: { color: '#fff', fontSize: FontSize.xs, fontWeight: '700' },
+  analysisBox: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+    gap: 6,
+  },
+  analysisTitle: { fontSize: FontSize.sm, fontWeight: '700' },
+  analysisText: { fontSize: FontSize.xs, lineHeight: 18 },
+  analysisBetter: { fontSize: FontSize.sm, fontWeight: '700', marginTop: 4 },
+  compareCloseBtn: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+  },
+  compareCloseBtnText: { color: '#fff', fontWeight: '700', fontSize: FontSize.md },
 });

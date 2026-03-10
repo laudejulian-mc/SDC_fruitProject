@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, Image,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, Alert, Modal, Animated,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { detectSingle, detectBatch } from '../api';
 import ResultCard from '../components/ResultCard';
 import Toast from '../components/Toast';
 import { FRUIT_OPTIONS, fruitEmoji, getRandomFacts } from '../utils/fruitConstants';
+import { analyzeImageQuality, qualityLabel, computeImageFingerprint, isDuplicate, enhanceImage } from '../utils/imageUtils';
 import { useI18n } from '../contexts/I18nContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useColors, BorderRadius, FontSize, Spacing, Shadows } from '../theme';
@@ -28,14 +29,73 @@ export default function DetectScreen() {
   const [scanCount, setScanCount] = useState(0);
   const [currentFact, setCurrentFact] = useState(() => getRandomFacts('apple', 3));
 
+  // ─── #3 Image Quality Detection ─────────────────────────
+  const [qualityInfo, setQualityInfo] = useState(null);
+  const [qualityChecking, setQualityChecking] = useState(false);
+
+  // ─── #8 Spoilage Alert ──────────────────────────────────
+  const [spoilageVisible, setSpoilageVisible] = useState(false);
+  const [spoilageResult, setSpoilageResult] = useState(null);
+  const [spoilageDismissed, setSpoilageDismissed] = useState(false);
+
+  // ─── #11 Session Summary ────────────────────────────────
+  const [sessionResults, setSessionResults] = useState([]);
+  const [sessionSummaryVisible, setSessionSummaryVisible] = useState(false);
+
+  // ─── #12 Duplicate Detection ────────────────────────────
+  const [recentFingerprints, setRecentFingerprints] = useState([]);
+
+  // ─── #16 Auto Enhancement ───────────────────────────────
+  const [enhancedUri, setEnhancedUri] = useState(null);
+  const [enhancing, setEnhancing] = useState(false);
+
+  // ─── Quick Scan Feature (NEW) ───────────────────────────
+  const [showQuickScanFAB, setShowQuickScanFAB] = useState(true);
+  const fabScaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Animate FAB appearance
+  useEffect(() => {
+    Animated.timing(fabScaleAnim, {
+      toValue: showQuickScanFAB ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [showQuickScanFAB]);
+
   useEffect(() => {
     setCurrentFact(getRandomFacts(fruitType, 3));
   }, [fruitType]);
+
+  // ── Run quality check when image changes ────────────────
+  useEffect(() => {
+    if (images.length === 1 && mode === 'single') {
+      runQualityCheck(images[0]);
+    } else {
+      setQualityInfo(null);
+      setEnhancedUri(null);
+    }
+  }, [images]);
+
+  // ── Quick Scan FAB is always visible ─────────────────────────
+  // Feature should be prominent on screen load (no conditional visibility based on image count)
+
+  const runQualityCheck = async (asset) => {
+    setQualityChecking(true);
+    try {
+      const info = await analyzeImageQuality(asset);
+      setQualityInfo(info);
+    } catch {
+      setQualityInfo(null);
+    }
+    setQualityChecking(false);
+  };
 
   const clear = () => {
     setImages([]);
     setResult(null);
     setBatchResults([]);
+    setQualityInfo(null);
+    setEnhancedUri(null);
   };
 
   const pickImage = async () => {
@@ -52,6 +112,32 @@ export default function DetectScreen() {
     });
 
     if (!pickerResult.canceled && pickerResult.assets?.length > 0) {
+      const selected = mode === 'single' ? [pickerResult.assets[0]] : pickerResult.assets;
+
+      // ── #12 Duplicate check for single mode ──────────────
+      if (mode === 'single') {
+        const fp = await computeImageFingerprint(selected[0]);
+        const dup = recentFingerprints.find((rfp) => isDuplicate(fp, rfp));
+        if (dup) {
+          Alert.alert(
+            t('duplicate.detected'),
+            t('duplicate.description'),
+            [
+              { text: t('duplicate.chooseAnother'), style: 'cancel' },
+              {
+                text: t('duplicate.continueAnyway'),
+                onPress: () => {
+                  setImages(selected);
+                  setResult(null);
+                  setBatchResults([]);
+                },
+              },
+            ],
+          );
+          return;
+        }
+      }
+
       if (mode === 'single') {
         setImages([pickerResult.assets[0]]);
       } else {
@@ -80,6 +166,20 @@ export default function DetectScreen() {
     }
   };
 
+  // ── #16 Auto-enhance ────────────────────────────────────
+  const handleEnhance = async () => {
+    if (!images.length) return;
+    setEnhancing(true);
+    try {
+      const uri = await enhanceImage(images[0].uri);
+      setEnhancedUri(uri);
+      setToast({ type: 'success', message: t('quality.enhanced') });
+    } catch {
+      setToast({ type: 'error', message: 'Enhancement failed' });
+    }
+    setEnhancing(false);
+  };
+
   const [batchProgress, setBatchProgress] = useState('');
 
   const submit = async () => {
@@ -90,8 +190,10 @@ export default function DetectScreen() {
       if (mode === 'single') {
         const fd = new FormData();
         const img = images[0];
+        // Use enhanced URI if available (#16)
+        const uri = enhancedUri || img.uri;
         fd.append('image', {
-          uri: img.uri,
+          uri,
           name: img.fileName || 'photo.jpg',
           type: img.mimeType || 'image/jpeg',
         });
@@ -100,6 +202,18 @@ export default function DetectScreen() {
         const res = await detectSingle(fd);
         setResult(res.data);
         setScanCount((c) => c + 1);
+        setSessionResults((prev) => [...prev, res.data]); // #11
+
+        // ── #12 Store fingerprint ──────────────────────────
+        const fp = await computeImageFingerprint(img);
+        setRecentFingerprints((prev) => [fp, ...prev.slice(0, 19)]);
+
+        // ── #8 Spoilage alert ──────────────────────────────
+        if (res.data.predicted_label === 'Rotten' && !spoilageDismissed) {
+          setSpoilageResult(res.data);
+          setSpoilageVisible(true);
+        }
+
         setToast({ type: 'success', message: t('detect.diagnosisComplete', { fruit: fruitName(fruitType) }) });
       } else {
         // RN FormData with repeated file keys is unreliable.
@@ -123,8 +237,18 @@ export default function DetectScreen() {
             results.push({ error: e.response?.data?.error || 'Failed', filename: img.fileName || `photo_${i}.jpg` });
           }
         }
-        setBatchResults(results.filter((r) => !r.error));
-        setScanCount((c) => c + results.filter((r) => !r.error).length);
+        const successful = results.filter((r) => !r.error);
+        setBatchResults(successful);
+        setScanCount((c) => c + successful.length);
+        setSessionResults((prev) => [...prev, ...successful]); // #11
+
+        // ── #8 Spoilage alert for batch ────────────────────
+        const rottenBatch = successful.filter((r) => r.predicted_label === 'Rotten').length;
+        if (rottenBatch > 0 && !spoilageDismissed) {
+          setSpoilageResult({ predicted_label: 'Rotten', count: rottenBatch });
+          setSpoilageVisible(true);
+        }
+
         const failed = results.filter((r) => r.error).length;
         const msg = failed > 0
           ? `${results.length - failed}/${results.length} analyzed` 
@@ -139,11 +263,135 @@ export default function DetectScreen() {
     }
   };
 
+  // ─── Quick Scan handler (NEW) ───────────────────────────
+  const handleQuickScan = async () => {
+    if (!images.length) {
+      setToast({ type: 'warning', message: t('detect.selectImage') });
+      return;
+    }
+    setShowQuickScanFAB(false);
+    submit();
+  };
+
+  // ── #11 Session summary helpers ─────────────────────────
+  const freshCount = sessionResults.filter((r) => r.predicted_label === 'Fresh').length;
+  const rottenCount = sessionResults.filter((r) => r.predicted_label === 'Rotten').length;
+  const avgConfidence = sessionResults.length > 0
+    ? (sessionResults.reduce((s, r) => s + (r.confidence || 0), 0) / sessionResults.length * 100).toFixed(1)
+    : '0.0';
+  const freshRate = sessionResults.length > 0
+    ? ((freshCount / sessionResults.length) * 100).toFixed(0)
+    : '0';
+
+  const resetSession = () => {
+    setSessionResults([]);
+    setScanCount(0);
+    setSpoilageDismissed(false);
+  };
+
   const displayFruit = fruitName(fruitType);
+
+  // ── Quality badge color ─────────────────────────────────
+  const getQualityColor = (score) => {
+    if (score >= 80) return c.green;
+    if (score >= 60) return c.blue;
+    if (score >= 40) return c.amber;
+    return c.red;
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: c.background }]}>
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
+
+      {/* ── #8 Spoilage Alert Modal ──────────────────────── */}
+      <Modal visible={spoilageVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.spoilageModal, { backgroundColor: c.card, ...c.cardShadowElevated }]}>
+            <Text style={[styles.spoilageTitle, { color: c.red }]}>{t('spoilage.alertTitle')}</Text>
+            <Text style={[styles.spoilageSubtitle, { color: c.textSecondary }]}>{t('spoilage.alertSubtitle')}</Text>
+
+            <View style={[styles.spoilageTipsBox, { backgroundColor: c.errorBg, borderColor: c.errorBorder }]}>
+              <Text style={[styles.spoilageTipsTitle, { color: c.errorText }]}>{t('spoilage.disposalTitle')}</Text>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Text key={n} style={[styles.spoilageTip, { color: c.textSecondary }]}>
+                  • {t(`spoilage.tip${n}`)}
+                </Text>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              onPress={() => { setSpoilageDismissed(true); setSpoilageVisible(false); }}
+              style={styles.spoilageDontShow}
+            >
+              <Ionicons name="checkbox-outline" size={16} color={c.textMuted} />
+              <Text style={[styles.spoilageDontShowText, { color: c.textMuted }]}>{t('spoilage.dontShowAgain')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setSpoilageVisible(false)}
+              style={[styles.spoilageDismissBtn, { backgroundColor: c.primary }]}
+            >
+              <Text style={styles.spoilageDismissText}>{t('spoilage.dismiss')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── #11 Session Summary Modal ────────────────────── */}
+      <Modal visible={sessionSummaryVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.sessionModal, { backgroundColor: c.card, ...c.cardShadowElevated }]}>
+            <View style={styles.sessionHeader}>
+              <Text style={[styles.sessionTitle, { color: c.text }]}>📊 {t('session.title')}</Text>
+              <TouchableOpacity onPress={() => setSessionSummaryVisible(false)}>
+                <Ionicons name="close" size={22} color={c.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            {sessionResults.length === 0 ? (
+              <Text style={[styles.sessionEmpty, { color: c.textMuted }]}>{t('session.sessionEmpty')}</Text>
+            ) : (
+              <>
+                <View style={styles.sessionGrid}>
+                  <View style={[styles.sessionCard, { backgroundColor: c.primaryLight }]}>
+                    <Text style={[styles.sessionCardValue, { color: c.primary }]}>{sessionResults.length}</Text>
+                    <Text style={[styles.sessionCardLabel, { color: c.textSecondary }]}>{t('session.totalScans')}</Text>
+                  </View>
+                  <View style={[styles.sessionCard, { backgroundColor: c.greenLight }]}>
+                    <Text style={[styles.sessionCardValue, { color: c.green }]}>{freshCount}</Text>
+                    <Text style={[styles.sessionCardLabel, { color: c.textSecondary }]}>{t('session.freshCount')}</Text>
+                  </View>
+                  <View style={[styles.sessionCard, { backgroundColor: c.redLight }]}>
+                    <Text style={[styles.sessionCardValue, { color: c.red }]}>{rottenCount}</Text>
+                    <Text style={[styles.sessionCardLabel, { color: c.textSecondary }]}>{t('session.rottenCount')}</Text>
+                  </View>
+                  <View style={[styles.sessionCard, { backgroundColor: c.blueLight }]}>
+                    <Text style={[styles.sessionCardValue, { color: c.blue }]}>{avgConfidence}%</Text>
+                    <Text style={[styles.sessionCardLabel, { color: c.textSecondary }]}>{t('session.avgConfidence')}</Text>
+                  </View>
+                </View>
+
+                {/* Freshness rate bar */}
+                <View style={styles.freshRateRow}>
+                  <Text style={[styles.freshRateLabel, { color: c.textSecondary }]}>{t('session.freshRate')}</Text>
+                  <View style={[styles.freshRateBar, { backgroundColor: c.cardBorderSubtle }]}>
+                    <View style={[styles.freshRateFill, { width: `${freshRate}%`, backgroundColor: c.green }]} />
+                  </View>
+                  <Text style={[styles.freshRateValue, { color: c.green }]}>{freshRate}%</Text>
+                </View>
+              </>
+            )}
+
+            <TouchableOpacity
+              onPress={() => { resetSession(); setSessionSummaryVisible(false); }}
+              style={[styles.sessionResetBtn, { borderColor: c.red }]}
+            >
+              <Ionicons name="refresh" size={14} color={c.red} />
+              <Text style={{ color: c.red, fontWeight: '600', fontSize: FontSize.sm }}>{t('session.reset')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Fruit selector */}
@@ -236,7 +484,7 @@ export default function DetectScreen() {
                 <Ionicons name="close" size={16} color="#fff" />
               </TouchableOpacity>
               {mode === 'single' ? (
-                <Image source={{ uri: images[0].uri }} style={styles.previewImage} resizeMode="contain" />
+                <Image source={{ uri: enhancedUri || images[0].uri }} style={styles.previewImage} resizeMode="contain" />
               ) : (
                 <View style={styles.previewGrid}>
                   {images.map((img, i) => (
@@ -244,11 +492,68 @@ export default function DetectScreen() {
                   ))}
                 </View>
               )}
+
+              {/* ── #3 Quality indicator badge ───────────── */}
+              {qualityInfo && mode === 'single' && (
+                <View style={[styles.qualityBadge, { backgroundColor: getQualityColor(qualityInfo.score) + '20', borderColor: getQualityColor(qualityInfo.score) }]}>
+                  <Ionicons
+                    name={qualityInfo.score >= 60 ? 'checkmark-circle' : 'warning'}
+                    size={14}
+                    color={getQualityColor(qualityInfo.score)}
+                  />
+                  <Text style={[styles.qualityBadgeText, { color: getQualityColor(qualityInfo.score) }]}>
+                    {t(`quality.${qualityLabel(qualityInfo.score)}`)} ({qualityInfo.score}/100)
+                  </Text>
+                </View>
+              )}
+              {qualityChecking && mode === 'single' && (
+                <View style={[styles.qualityBadge, { borderColor: 'transparent' }]}>
+                  <ActivityIndicator size="small" color={c.textMuted} />
+                  <Text style={[styles.qualityBadgeText, { color: c.textMuted }]}>{t('quality.analyzing')}</Text>
+                </View>
+              )}
+
+              {/* ── #3 Quality issues list ───────────────── */}
+              {qualityInfo && qualityInfo.issues.length > 0 && mode === 'single' && (
+                <View style={[styles.qualityIssues, { backgroundColor: c.warningBg, borderColor: c.warningBorder }]}>
+                  {qualityInfo.issues.map((issue, i) => (
+                    <Text key={i} style={[styles.qualityIssueText, { color: c.warningText }]}>
+                      ⚠ {t(`quality.${issue}`) || issue}
+                    </Text>
+                  ))}
+                </View>
+              )}
+
               <View style={styles.uploadBtns}>
                 <TouchableOpacity onPress={pickImage} style={[styles.uploadBtn, { backgroundColor: c.primaryLight }]}>
                   <Ionicons name="swap-horizontal" size={16} color={c.primary} />
                   <Text style={[styles.uploadBtnText, { color: c.primary }]}>Change</Text>
                 </TouchableOpacity>
+
+                {/* ── #16 Auto-enhance button ───────────── */}
+                {mode === 'single' && !enhancedUri && (
+                  <TouchableOpacity
+                    onPress={handleEnhance}
+                    disabled={enhancing}
+                    style={[styles.uploadBtn, { backgroundColor: c.blueLight }]}
+                  >
+                    {enhancing ? (
+                      <ActivityIndicator size="small" color={c.blue} />
+                    ) : (
+                      <Ionicons name="color-wand-outline" size={16} color={c.blue} />
+                    )}
+                    <Text style={[styles.uploadBtnText, { color: c.blue }]}>{t('enhance.title')}</Text>
+                  </TouchableOpacity>
+                )}
+                {enhancedUri && (
+                  <TouchableOpacity
+                    onPress={() => setEnhancedUri(null)}
+                    style={[styles.uploadBtn, { backgroundColor: c.amberLight }]}
+                  >
+                    <Ionicons name="arrow-undo" size={16} color={c.amber} />
+                    <Text style={[styles.uploadBtnText, { color: c.amber }]}>{t('quality.original')}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
@@ -272,12 +577,22 @@ export default function DetectScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Session counter + Fun Facts */}
+        {/* ── #11 Session Summary + Fun Facts ────────────── */}
         <View style={styles.statsRow}>
-          <View style={[styles.statBox, { backgroundColor: c.card, borderColor: c.cardBorder, ...c.cardShadow }]}>
+          <TouchableOpacity
+            style={[styles.statBox, { backgroundColor: c.card, borderColor: c.cardBorder, ...c.cardShadow }]}
+            onPress={() => setSessionSummaryVisible(true)}
+          >
             <Text style={[styles.statValue, { color: c.primary }]}>{scanCount}</Text>
             <Text style={[styles.statLabel, { color: c.textMuted }]}>{t('detect.examsThisSession')}</Text>
-          </View>
+            {sessionResults.length > 0 && (
+              <View style={styles.miniStats}>
+                <Text style={[styles.miniStat, { color: c.green }]}>✅ {freshCount}</Text>
+                <Text style={[styles.miniStat, { color: c.red }]}>❌ {rottenCount}</Text>
+              </View>
+            )}
+            <Text style={[styles.viewSummaryLink, { color: c.primary }]}>{t('session.viewSummary')}</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[styles.statBox, { backgroundColor: c.card, borderColor: c.cardBorder, ...c.cardShadow, flex: 1 }]}
             onPress={() => setCurrentFact(getRandomFacts(fruitType, 3))}
@@ -295,6 +610,34 @@ export default function DetectScreen() {
 
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      {/* ─── Quick Scan FAB (NEW) ─── */}
+      {showQuickScanFAB && (
+        <Animated.View
+          style={[
+            styles.quickScanFAB,
+            { transform: [{ scale: fabScaleAnim }] },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={handleQuickScan}
+            disabled={loading}
+            style={[
+              styles.quickScanBtn,
+              { backgroundColor: c.primary, opacity: loading ? 0.7 : 1 },
+            ]}
+            accessibilityLabel={t('detect.quickScan')}
+            accessibilityRole="button"
+            accessible={true}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Ionicons name="sparkles" size={24} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -347,6 +690,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.md,
     marginTop: Spacing.lg,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   uploadBtn: {
     flexDirection: 'row',
@@ -392,4 +737,133 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: FontSize.xs },
   factTitle: { fontSize: FontSize.xs, fontWeight: '700', marginBottom: 4 },
   factText: { fontSize: FontSize.xs, lineHeight: 18 },
+
+  // ── #3 Quality badge ────────────────────────────────────
+  qualityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'center',
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  qualityBadgeText: { fontSize: FontSize.xs, fontWeight: '600' },
+  qualityIssues: {
+    marginTop: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: 2,
+  },
+  qualityIssueText: { fontSize: FontSize.xs },
+
+  // ── #8 Spoilage modal ──────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  spoilageModal: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xxl,
+    gap: Spacing.md,
+  },
+  spoilageTitle: { fontSize: FontSize.xl, fontWeight: '700', textAlign: 'center' },
+  spoilageSubtitle: { fontSize: FontSize.sm, textAlign: 'center' },
+  spoilageTipsBox: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    padding: Spacing.md,
+    gap: 6,
+  },
+  spoilageTipsTitle: { fontSize: FontSize.sm, fontWeight: '700', marginBottom: 4 },
+  spoilageTip: { fontSize: FontSize.xs, lineHeight: 18 },
+  spoilageDontShow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'center',
+  },
+  spoilageDontShowText: { fontSize: FontSize.xs },
+  spoilageDismissBtn: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+  },
+  spoilageDismissText: { color: '#fff', fontWeight: '700', fontSize: FontSize.md },
+
+  // ── #11 Session summary modal ──────────────────────────
+  sessionModal: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xxl,
+    gap: Spacing.md,
+  },
+  sessionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sessionTitle: { fontSize: FontSize.xl, fontWeight: '700' },
+  sessionEmpty: { fontSize: FontSize.sm, textAlign: 'center', paddingVertical: Spacing.xxl },
+  sessionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  sessionCard: {
+    width: '47%',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+  },
+  sessionCardValue: { fontSize: FontSize.xxl, fontWeight: '700' },
+  sessionCardLabel: { fontSize: FontSize.xs, marginTop: 2 },
+  freshRateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  freshRateLabel: { fontSize: FontSize.xs, width: 80 },
+  freshRateBar: { flex: 1, height: 8, borderRadius: 4, overflow: 'hidden' },
+  freshRateFill: { height: '100%', borderRadius: 4 },
+  freshRateValue: { fontSize: FontSize.sm, fontWeight: '700', width: 40, textAlign: 'right' },
+  sessionResetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+  },
+
+  // ── #11 Mini stats in stat box ─────────────────────────
+  miniStats: { flexDirection: 'row', gap: Spacing.sm, marginTop: 4 },
+  miniStat: { fontSize: FontSize.xs, fontWeight: '600' },
+  viewSummaryLink: { fontSize: FontSize.xs, marginTop: 4, fontWeight: '600' },
+
+  // ── Quick Scan FAB (NEW) ────────────────────────────────
+  quickScanFAB: {
+    position: 'absolute',
+    bottom: Spacing.lg,
+    right: Spacing.lg,
+    zIndex: 50,
+  },
+  quickScanBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.lg,
+  },
 });

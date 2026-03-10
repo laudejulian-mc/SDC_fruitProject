@@ -7,7 +7,7 @@ import { useI18n } from '../contexts/I18nContext';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Search, Trash2, Download, RefreshCw, ChevronLeft, ChevronRight,
-  Stethoscope, Filter, X, Loader2, SlidersHorizontal,
+  Stethoscope, Filter, X, Loader2, SlidersHorizontal, GitCompare, XCircle,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -22,6 +22,10 @@ export default function History() {
   const [toast, setToast] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+
+  // #19 Compare Mode
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareItems, setCompareItems] = useState([]);
 
   const [filters, setFilters] = useState({
     search: '', fruit_type: '', predicted_label: '', grade: '', detection_method: '',
@@ -66,6 +70,21 @@ export default function History() {
     setPage(1);
   };
 
+  // #19 Compare helpers
+  const toggleCompareItem = (rec) => {
+    setCompareItems((prev) => {
+      const exists = prev.find((r) => r.id === rec.id);
+      if (exists) return prev.filter((r) => r.id !== rec.id);
+      if (prev.length >= 2) {
+        setToast({ type: 'warning', message: t('compare.maxTwo') });
+        return prev;
+      }
+      return [...prev, rec];
+    });
+  };
+  const isInCompare = (id) => compareItems.some((r) => r.id === id);
+  const exitCompareMode = () => { setCompareMode(false); setCompareItems([]); };
+
   return (
     <div className="space-y-4">
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
@@ -88,6 +107,12 @@ export default function History() {
               <Download size={18} />
             </button>
           )}
+          <button
+            onClick={() => compareMode ? exitCompareMode() : setCompareMode(true)}
+            className={clsx('p-2 rounded-xl transition-colors', compareMode ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : 'bg-gray-100 dark:bg-gray-800')}
+          >
+            <GitCompare size={18} />
+          </button>
         </div>
       </div>
 
@@ -152,6 +177,14 @@ export default function History() {
                     <span className="text-xs text-gray-400">{new Date(rec.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
+                {compareMode && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleCompareItem(rec); }}
+                    className={clsx('p-2 rounded-lg flex-shrink-0 transition-all active:scale-90', isInCompare(rec.id) ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-400')}
+                  >
+                    <GitCompare size={14} />
+                  </button>
+                )}
               </div>
 
               {/* Expanded details */}
@@ -175,6 +208,55 @@ export default function History() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* #19 Compare Panel */}
+      {compareMode && compareItems.length === 2 && (
+        <div className="card space-y-3 border-2 border-indigo-200 dark:border-indigo-800/40 animate-slide-up">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+              <GitCompare size={14} /> {t('compare.title')}
+            </h3>
+            <button onClick={exitCompareMode} className="text-xs text-gray-400 active:text-red-500 flex items-center gap-1">
+              <XCircle size={12} /> {t('compare.close')}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {compareItems.map((item) => (
+              <div key={item.id} className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-bold text-gray-400">#{item.id}</span>
+                  <span className="text-xs">{fruitEmoji(item.fruit_type)}</span>
+                  <span className="text-xs font-semibold capitalize">{fruitName(item.fruit_type)}</span>
+                </div>
+                {item.image_url && (
+                  <img src={item.image_url} alt="" className="w-full h-28 object-cover rounded-xl" />
+                )}
+                <div className="space-y-1 text-[11px]">
+                  <div className="flex items-center justify-between"><span className="text-gray-400">{t('compare.label')}</span> <LabelBadge label={item.predicted_label} /></div>
+                  <div className="flex items-center justify-between"><span className="text-gray-400">{t('compare.confidence')}</span> <span className="font-bold text-primary-600">{(item.confidence * 100).toFixed(1)}%</span></div>
+                  <div className="flex items-center justify-between"><span className="text-gray-400">{t('compare.grade')}</span> <GradeBadge grade={item.grade} /></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-xl p-2.5 text-[11px]">
+            <p className="font-bold text-indigo-700 dark:text-indigo-400 mb-1">{t('compare.analysis')}</p>
+            <p className="text-indigo-600/80 dark:text-indigo-400/70">
+              {compareItems[0].predicted_label === compareItems[1].predicted_label
+                ? `${t('compare.sameLabel')} ${labelName(compareItems[0].predicted_label)}.`
+                : `${t('compare.diffLabel')}: ${labelName(compareItems[0].predicted_label)} vs ${labelName(compareItems[1].predicted_label)}.`}
+              {' '}{t('compare.confGap')}: {Math.abs((compareItems[0].confidence - compareItems[1].confidence) * 100).toFixed(1)}pp.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Compare mode indicator */}
+      {compareMode && compareItems.length < 2 && (
+        <div className="text-center py-3 text-xs text-indigo-500 font-medium animate-pulse">
+          {t('compare.selectRecords', { n: 2 - compareItems.length })}
         </div>
       )}
 

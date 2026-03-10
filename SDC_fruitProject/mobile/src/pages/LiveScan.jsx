@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { detectSingle } from '../api';
 import ResultCard from '../components/ResultCard';
 import Toast from '../components/Toast';
-import { Video, VideoOff, Camera, Loader2, Radio, Clock, Trash2, Stethoscope, Scan, Target } from 'lucide-react';
+import { Video, VideoOff, Camera, Loader2, Radio, Clock, Trash2, Stethoscope, Scan, Target, Sun, SunDim, Moon } from 'lucide-react';
 import clsx from 'clsx';
 import { FRUIT_OPTIONS, fruitEmoji, LABEL_TEXT_COLORS } from '../utils/fruitConstants';
 import { useI18n } from '../contexts/I18nContext';
@@ -12,6 +12,7 @@ export default function LiveScan() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const intervalRef = useRef(null);
+  const lightingRef = useRef(null);
 
   const [streaming, setStreaming] = useState(false);
   const [fruitType, setFruitType] = useState('apple');
@@ -23,6 +24,11 @@ export default function LiveScan() {
   const [capturePreview, setCapturePreview] = useState(null);
   const [detectionLog, setDetectionLog] = useState([]);
   const [scanCount, setScanCount] = useState(0);
+
+  // #13 Lighting Guide state
+  const [showLightingGuide, setShowLightingGuide] = useState(true);
+  const [lightingScore, setLightingScore] = useState(null);
+  const [lightingUniformity, setLightingUniformity] = useState(null);
 
   const startCam = async () => {
     try {
@@ -37,6 +43,43 @@ export default function LiveScan() {
       setToast({ type: 'error', message: t('live.cameraAccessDenied') });
     }
   };
+
+  // #13 Lighting analyzer
+  const analyzeLighting = useCallback(() => {
+    if (!videoRef.current || !videoRef.current.srcObject) return;
+    const video = videoRef.current;
+    if (video.videoWidth === 0) return;
+    const c = document.createElement('canvas');
+    const sz = 64;
+    c.width = sz; c.height = sz;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(video, 0, 0, sz, sz);
+    const { data } = ctx.getImageData(0, 0, sz, sz);
+    let sum = 0;
+    const vals = [];
+    for (let i = 0; i < data.length; i += 4) {
+      const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+      sum += lum;
+      vals.push(lum);
+    }
+    const avg = sum / vals.length;
+    const variance = vals.reduce((s, v) => s + (v - avg) ** 2, 0) / vals.length;
+    const stdDev = Math.sqrt(variance);
+    const uniformity = Math.max(0, Math.min(100, 100 - stdDev));
+    let score;
+    if (avg < 40) score = Math.round(avg / 40 * 30);
+    else if (avg < 80) score = Math.round(30 + (avg - 40) / 40 * 30);
+    else if (avg <= 200) score = Math.round(60 + (1 - Math.abs(avg - 140) / 60) * 40);
+    else score = Math.round(Math.max(20, 80 - (avg - 200) / 55 * 60));
+    setLightingScore(Math.min(100, Math.max(0, score)));
+    setLightingUniformity(Math.round(uniformity));
+  }, []);
+
+  useEffect(() => {
+    if (!streaming || !showLightingGuide) { lightingRef.current && clearInterval(lightingRef.current); return; }
+    lightingRef.current = window.setInterval(analyzeLighting, 600);
+    return () => clearInterval(lightingRef.current);
+  }, [streaming, showLightingGuide, analyzeLighting]);
 
   const stopCam = useCallback(() => {
     if (videoRef.current?.srcObject) {
@@ -174,6 +217,27 @@ export default function LiveScan() {
                 <span>{detecting ? t('live.scanning') : t('live.idle')}</span>
               </div>
             </div>
+
+            {/* #13 Lighting Guide Overlay */}
+            {showLightingGuide && lightingScore !== null && (
+              <div className="absolute bottom-14 left-3 right-3 flex items-center justify-between">
+                <div className={clsx(
+                  'flex items-center gap-1.5 text-xs font-bold backdrop-blur-md px-2.5 py-1 rounded-full',
+                  lightingScore >= 70 ? 'bg-green-500/70 text-white' :
+                  lightingScore >= 40 ? 'bg-amber-500/70 text-white' :
+                  'bg-red-500/70 text-white'
+                )}>
+                  {lightingScore >= 70 ? <Sun size={11} /> : lightingScore >= 40 ? <SunDim size={11} /> : <Moon size={11} />}
+                  {lightingScore >= 70 ? t('lighting.good') : lightingScore >= 40 ? t('lighting.low') : t('lighting.tooDark')}
+                  <span className="ml-0.5 opacity-80">{lightingScore}%</span>
+                </div>
+                {lightingScore < 40 && (
+                  <span className="text-[10px] bg-black/50 backdrop-blur-md text-white px-2 py-0.5 rounded-full">
+                    💡 {t('lighting.moveBrighter')}
+                  </span>
+                )}
+              </div>
+            )}
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
                 <div className="flex flex-col items-center gap-2">
@@ -235,6 +299,14 @@ export default function LiveScan() {
               className="py-3 px-4 rounded-xl bg-gray-100 dark:bg-gray-800 text-sm font-semibold flex items-center gap-2 active:scale-[0.97]"
             >
               <Camera size={16} />
+            </button>
+            <button
+              onClick={() => setShowLightingGuide(!showLightingGuide)}
+              className={clsx('py-3 px-4 rounded-xl text-sm font-semibold flex items-center gap-2 active:scale-[0.97]',
+                showLightingGuide ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+              )}
+            >
+              <Sun size={16} />
             </button>
           </>
         )}
