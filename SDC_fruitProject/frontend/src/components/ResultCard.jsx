@@ -78,16 +78,16 @@ export default function ResultCard({ result, showImage = true }) {
       </div>
 
       {/* Fun facts */}
-      <div className="rounded-xl p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200/60 dark:border-amber-800/30">
-        <p className="text-sm font-bold text-amber-700 dark:text-amber-400 mb-2">💡 {t('detect.didYouKnow')}</p>
+      <div className="rounded-xl p-4 bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800">
+        <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300 mb-2">💡 {t('detect.didYouKnow')}</p>
         <div className="space-y-1.5">
           {facts.map((fact, i) => (
-            <div key={i} className="text-sm text-amber-600/80 dark:text-amber-400/70 leading-relaxed flex items-start gap-2">
+            <div key={i} className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed flex items-start gap-2">
               <span className="flex-shrink-0 mt-0.5">{fruitEmoji(fruit)}</span>
               <div>
                 <span>{typeof fact === 'string' ? fact : fact.text}</span>
                 {fact.source && (
-                  <span className="block text-[11px] text-amber-500/50 dark:text-amber-500/40 italic mt-0.5">— {fact.source}</span>
+                  <span className="block text-[11px] text-gray-500 dark:text-gray-400 italic mt-0.5">— {fact.source}</span>
                 )}
               </div>
             </div>

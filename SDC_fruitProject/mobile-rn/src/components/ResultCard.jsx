@@ -195,19 +195,19 @@ export default function ResultCard({ result, showImage = true }) {
       )}
 
       {/* Fun facts */}
-      <View style={[styles.factBox, { backgroundColor: c.warningBg, borderColor: c.warningBorder }]}>
-        <Text style={[styles.factTitle, { color: c.amber }]}>
+      <View style={[styles.factBox, { backgroundColor: c.card, borderColor: c.cardBorder }]}>
+        <Text style={[styles.factTitle, { color: c.primary }]}>
           💡 {t('detect.didYouKnow')}
         </Text>
         {facts.map((fact, i) => (
           <View key={i} style={styles.factRow}>
             <Text style={styles.factEmoji}>{fruitEmoji(fruit)}</Text>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.factText, { color: c.warningText }]}>
+              <Text style={[styles.factText, { color: c.text }]}> 
                 {typeof fact === 'string' ? fact : fact.text}
               </Text>
               {fact.source ? (
-                <Text style={[styles.factSource, { color: c.warningText, opacity: 0.6 }]}>
+                <Text style={[styles.factSource, { color: c.textMuted }]}> 
                   — {fact.source}
                 </Text>
               ) : null}

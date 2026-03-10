@@ -50,8 +50,8 @@ export default function DetectScreen() {
   const [enhancing, setEnhancing] = useState(false);
 
   // ─── Quick Scan Feature (NEW) ───────────────────────────
-  const [showQuickScanFAB, setShowQuickScanFAB] = useState(false);
-  const fabScaleAnim = useRef(new Animated.Value(0)).current;
+  const [showQuickScanFAB, setShowQuickScanFAB] = useState(true);
+  const fabScaleAnim = useRef(new Animated.Value(1)).current;
 
   // Animate FAB appearance
   useEffect(() => {
@@ -76,10 +76,8 @@ export default function DetectScreen() {
     }
   }, [images]);
 
-  // ── Show FAB when images are selected ─────────────────────
-  useEffect(() => {
-    setShowQuickScanFAB(images.length > 0);
-  }, [images]);
+  // ── Quick Scan FAB is always visible ─────────────────────────
+  // Feature should be prominent on screen load (no conditional visibility based on image count)
 
   const runQualityCheck = async (asset) => {
     setQualityChecking(true);

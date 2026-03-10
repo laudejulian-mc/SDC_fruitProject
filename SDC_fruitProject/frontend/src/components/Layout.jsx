@@ -117,14 +117,6 @@ export default function Layout() {
             >
               <Settings size={15} />
             </NavLink>
-            <button
-              onClick={handleLogout}
-              className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-400 hover:text-red-500 transition-colors"
-              title={t('auth.logout')}
-              aria-label={t('auth.logout')}
-            >
-              <LogOut size={15} />
-            </button>
           </div>
         </div>
       </aside>

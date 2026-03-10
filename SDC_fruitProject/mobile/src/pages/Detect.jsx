@@ -37,7 +37,7 @@ export default function Detect() {
 
   // ─── Quick Scan Feature (NEW) ───
   const [lastUsedFruit, setLastUsedFruit] = useState('apple');
-  const [showQuickScanFAB, setShowQuickScanFAB] = useState(false);
+  const [showQuickScanFAB, setShowQuickScanFAB] = useState(true);
 
   useEffect(() => {
     setCurrentFact(getRandomFacts(fruitType, 3));
@@ -159,13 +159,10 @@ export default function Detect() {
       setToast({ type: 'warning', message: t('detect.selectImage') });
       return;
     }
-    setShowQuickScanFAB(false);
     submit();
   };
 
-  useEffect(() => {
-    setShowQuickScanFAB(files.length > 0);
-  }, [files]);
+  // Quick Scan FAB is always visible (feature should be prominent on page load)
 
   const displayFruit = fruitName(fruitType);
 

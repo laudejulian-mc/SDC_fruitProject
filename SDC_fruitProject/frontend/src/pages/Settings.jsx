@@ -1,14 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../contexts/I18nContext';
 import { changeUsername, changePassword } from '../api';
 import {
   Settings as SettingsIcon, User, Lock, Eye, EyeOff,
-  CheckCircle2, AlertCircle, Loader2, Shield, KeyRound,
+  CheckCircle2, AlertCircle, Loader2, Shield, KeyRound, LogOut,
 } from 'lucide-react';
 
 export default function Settings() {
-  const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
+  const { user, refreshUser, logout } = useAuth();
   const { t } = useI18n();
 
   /* ── Username state ── */
@@ -28,6 +30,11 @@ export default function Settings() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   /* ── Handlers ── */
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   const handleUsername = async (e) => {
     e.preventDefault();
     setUMsg(null);
@@ -267,6 +274,18 @@ export default function Settings() {
             )}
           </button>
         </form>
+      </div>
+
+      {/* Logout Section */}
+      <div className="card border-red-200 dark:border-red-800 !p-0 mt-8">
+        <button
+          onClick={handleLogout}
+          className="w-full py-4 px-6 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+          aria-label={t('auth.logout')}
+        >
+          <LogOut size={18} />
+          {t('auth.logout')}
+        </button>
       </div>
     </div>
   );
