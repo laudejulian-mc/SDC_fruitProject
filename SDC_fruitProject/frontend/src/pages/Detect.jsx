@@ -42,7 +42,7 @@ export default function Detect() {
 
   // ─── Quick Scan Feature (NEW) ───
   const [lastUsedFruit, setLastUsedFruit] = useState('apple');
-  const [showQuickScanFAB, setShowQuickScanFAB] = useState(false);
+  const [showQuickScanFAB, setShowQuickScanFAB] = useState(true);
 
   // Rotate fun facts every 8 seconds or when fruit changes
   useEffect(() => {
@@ -195,10 +195,8 @@ export default function Detect() {
     submit(); // Trigger diagnosis with current fruit type
   };
 
-  // Show FAB when files are uploaded
-  useEffect(() => {
-    setShowQuickScanFAB(files.length > 0);
-  }, [files]);
+  // Quick Scan FAB is always visible (feature should be prominent on page load)
+  // Note: FAB visibility kept at `true` to ensure users see main feature immediately
 
   const info = FRUIT_HEALTH_INFO[fruitType] || FRUIT_HEALTH_INFO.apple;
   const displayFruit = fruitName(fruitType);

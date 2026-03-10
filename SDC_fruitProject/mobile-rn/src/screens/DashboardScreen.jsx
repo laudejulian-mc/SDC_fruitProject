@@ -58,6 +58,7 @@ export default function DashboardScreen({ navigation }) {
 
   const totalScans = stats.total_scans;
   const freshCount = stats.quality_distribution.Fresh || 0;
+  const rottenCount = Math.max(totalScans - freshCount, 0);
   const healthRate = totalScans > 0 ? ((freshCount / totalScans) * 100).toFixed(1) : 0;
   const avgConf = stats.recent_detections.length
     ? (stats.recent_detections.reduce((s, d) => s + d.confidence, 0) / stats.recent_detections.length * 100).toFixed(1)
@@ -65,6 +66,16 @@ export default function DashboardScreen({ navigation }) {
   const qualityData = Object.entries(stats.quality_distribution);
   const gradeData = Object.entries(stats.grade_distribution);
   const fruitData = stats.fruit_distribution ? Object.entries(stats.fruit_distribution) : [];
+  const mostCommonFruit = fruitData.length
+    ? fruitData.reduce((top, cur) => (cur[1] > top[1] ? cur : top), fruitData[0])
+    : null;
+  const lastDetection = stats.recent_detections[0];
+
+  const qualityPct = qualityData.map(([label, count]) => ({ label, pct: totalScans > 0 ? (count / totalScans) * 100 : 0 }));
+  const topFruits = fruitData
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([name, count]) => ({ name, count, pct: totalScans > 0 ? (count / totalScans) * 100 : 0 }));
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: c.background }]} contentContainerStyle={styles.content}>
@@ -112,8 +123,28 @@ export default function DashboardScreen({ navigation }) {
           <StatCard iconName="analytics-outline" label={t('dashboard.avgConfidence')} value={`${avgConf}%`} color="blue" />
         </View>
         <View style={styles.gridHalf}>
-          <StatCard iconName="leaf-outline" label={t('dashboard.gradeA')} value={freshCount} color="primary" />
+          <StatCard iconName="warning-outline" label={t('dashboard.rottenFruit')} value={rottenCount} color="orange" />
         </View>
+        {mostCommonFruit && (
+          <View style={styles.gridHalf}>
+            <StatCard
+              iconName="pie-chart-outline"
+              label={t('dashboard.topFruit')}
+              value={`${fruitName(mostCommonFruit[0])} (${mostCommonFruit[1]})`}
+              color="primary"
+            />
+          </View>
+        )}
+        {lastDetection && (
+          <View style={styles.gridHalf}>
+            <StatCard
+              iconName="flash-outline"
+              label={t('dashboard.lastScan')}
+              value={`${labelName(lastDetection.predicted_label)} • ${(lastDetection.confidence * 100).toFixed(0)}%`}
+              color="blue"
+            />
+          </View>
+        )}
       </View>
 
       {/* Quality breakdown */}
@@ -139,6 +170,61 @@ export default function DashboardScreen({ navigation }) {
             </View>
           );
         })}
+      </View>
+
+      {/* Graph card: stacked quality bar + fruit mini bars */}
+      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.cardBorder, ...c.cardShadow }]}>
+        <Text style={[styles.sectionTitle, { color: c.text }]}>{t('dashboard.overviewGraph') || 'Overview Graph'}</Text>
+        {/* Stacked quality bar */}
+        <Text style={[styles.graphLabel, { color: c.textSecondary }]}>{t('dashboard.freshVsRotten') || 'Fresh vs Rotten'}</Text>
+        <View style={[styles.stackedBar, { backgroundColor: dark ? c.cardBorderSubtle : '#f1f5f9' }]}>
+          {qualityPct.map(({ label, pct }) => (
+            <View
+              key={label}
+              style={{
+                width: `${Math.max(pct, 0)}%`,
+                backgroundColor: label === 'Fresh' ? c.green : c.red,
+                height: '100%',
+              }}
+            />
+          ))}
+        </View>
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendSwatch, { backgroundColor: c.green }]} />
+            <Text style={[styles.legendText, { color: c.text }]}>{t('labels.Fresh') || 'Fresh'}</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendSwatch, { backgroundColor: c.red }]} />
+            <Text style={[styles.legendText, { color: c.text }]}>{t('labels.Rotten') || 'Rotten'}</Text>
+          </View>
+        </View>
+
+        {/* Top fruits bars */}
+        <Text style={[styles.graphLabel, { color: c.textSecondary, marginTop: Spacing.md }]}>{t('dashboard.topFruits') || 'Top Fruits'}</Text>
+        {topFruits.length === 0 ? (
+          <Text style={{ color: c.textMuted, fontSize: FontSize.xs }}>{t('dashboard.noData') || 'No data yet.'}</Text>
+        ) : (
+          topFruits.map((f, i) => (
+            <View key={f.name} style={styles.fruitBarRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, width: 110 }}>
+                <Text style={{ fontSize: 14 }}>{fruitEmoji(f.name)}</Text>
+                <Text style={[styles.fruitBarLabel, { color: c.text }]}>{fruitName(f.name)}</Text>
+              </View>
+              <View style={[styles.fruitBarTrack, { backgroundColor: dark ? c.cardBorderSubtle : '#eef2f7' }]}>
+                <View
+                  style={{
+                    height: '100%',
+                    width: `${Math.min(Math.max(f.pct, 0), 100)}%`,
+                    backgroundColor: [c.primary, c.blue, c.orange, c.purple][i % 4] || c.primary,
+                    borderRadius: BorderRadius.full,
+                  }}
+                />
+              </View>
+              <Text style={[styles.fruitBarValue, { color: c.text }]}>{f.count}</Text>
+            </View>
+          ))
+        )}
       </View>
 
       {/* Grade distribution */}
@@ -294,4 +380,15 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: FontSize.xs,
   },
+  /* ── Graphs ───────────────────── */
+  graphLabel: { fontSize: FontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.4 },
+  stackedBar: { flexDirection: 'row', width: '100%', height: 14, borderRadius: BorderRadius.full, overflow: 'hidden', marginTop: Spacing.xs },
+  legendRow: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing.xs },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendSwatch: { width: 14, height: 14, borderRadius: 7 },
+  legendText: { fontSize: FontSize.xs, fontWeight: '600' },
+  fruitBarRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.xs },
+  fruitBarLabel: { fontSize: FontSize.sm, fontWeight: '600' },
+  fruitBarTrack: { flex: 1, height: 10, borderRadius: BorderRadius.full, overflow: 'hidden' },
+  fruitBarValue: { width: 36, textAlign: 'right', fontWeight: '700', fontVariant: ['tabular-nums'] },
 });

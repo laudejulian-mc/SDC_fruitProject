@@ -134,6 +134,21 @@ export default function SettingsScreen({ navigation }) {
       {/* Change username */}
       <View style={[styles.card, { backgroundColor: c.card, borderColor: c.cardBorder, ...c.cardShadow }]}>
         <Text style={[styles.sectionTitle, { color: c.text }]}>{t('settings.changeUsername')}</Text>
+        <View style={[styles.inputBox, { backgroundColor: c.inputBg, borderColor: c.cardBorderSubtle }]}> 
+          <Ionicons name="lock-closed-outline" size={16} color={c.textMuted} />
+          <TextInput
+            style={[styles.input, { color: c.text }]}
+            placeholder={t('settings.current_password')}
+            placeholderTextColor={c.textMuted}
+            secureTextEntry={!showPassword.current_password}
+            value={passwordForm.current_password}
+            onChangeText={(v) => setPasswordForm((p) => ({ ...p, current_password: v }))}
+            autoCapitalize="none"
+          />
+          <TouchableOpacity onPress={() => setShowPassword((p) => ({ ...p, current_password: !p.current_password }))}>
+            <Ionicons name={showPassword.current_password ? 'eye-off' : 'eye'} size={16} color={c.textMuted} />
+          </TouchableOpacity>
+        </View>
         <View style={[styles.inputBox, { backgroundColor: c.inputBg, borderColor: c.cardBorderSubtle }]}>
           <Ionicons name="person-outline" size={16} color={c.textMuted} />
           <TextInput
@@ -194,7 +209,10 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       {/* Logout */}
-      <TouchableOpacity style={[styles.logoutBtn, { borderColor: c.red, ...c.cardShadow }]} onPress={handleLogout}>
+      <TouchableOpacity
+        style={[styles.logoutBtn, { backgroundColor: c.redLight, borderColor: c.red }]}
+        onPress={handleLogout}
+      >
         <Ionicons name="log-out" size={18} color={c.red} />
         <Text style={[styles.logoutText, { color: c.red }]}>{t('settings.logout')}</Text>
       </TouchableOpacity>
@@ -234,7 +252,7 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '700', fontSize: FontSize.sm },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 14, borderRadius: BorderRadius.lg, borderWidth: 1.5,
+    paddingVertical: 14, borderRadius: BorderRadius.lg, borderWidth: 1,
   },
   logoutText: { fontWeight: '700', fontSize: FontSize.md },
 });
